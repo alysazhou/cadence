@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,27 +63,11 @@ import com.cs407.cadence.ui.theme.CadenceTheme
 fun HomeScreen(modifier: Modifier = Modifier) {
     Scaffold(
         topBar = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Welcome back",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp
-                )
-                Text(
-                    text = "Quickstart your customized workout here by selecting an activity and genre.",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
+
         }
     ) { innerPadding ->
         Box(
+
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -92,6 +77,33 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement
                     .spacedBy(20.dp),
             ) {
+                Box(
+                    contentAlignment = Alignment.TopStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.onPrimary)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = "Welcome back",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 32.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Quickstart your customized workout here by selecting an activity and genre.",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.White
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -103,7 +115,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                             .weight(1f),
                         onClick = { /*TODO*/ },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 15.dp, vertical = 15.dp),
+                        contentPadding = PaddingValues(20.dp),
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -130,7 +142,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                             .weight(1f),
                         onClick = { /*TODO*/ },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 15.dp, vertical = 15.dp),
+                        contentPadding = PaddingValues(20.dp),
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -219,7 +231,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 Button(
                     onClick = { /*TODO*/ },
                     shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 15.dp, vertical = 15.dp),
+                    contentPadding = PaddingValues(20.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
