@@ -52,11 +52,3 @@ fun CadenceTheme(
         content = content
     )
 }
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    CadenceTheme {
-        HomeScreen()
-    }
-}

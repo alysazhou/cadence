@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,15 +57,18 @@ import kotlinx.coroutines.delay
 
 
 @Composable
-fun WorkoutScreen(modifier: Modifier = Modifier) {
+fun WorkoutScreen(
+    modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit
+) {
 
-    var workoutlength by remember { mutableStateOf(0L) }
+    var workoutLength by remember { mutableStateOf(0L) }
     var isPlaying by remember { mutableStateOf(true) }
 
     LaunchedEffect(key1 = true) {
         while (true) {
             delay(1000L)
-            workoutlength++
+            workoutLength++
         }
     }
 
@@ -81,7 +85,7 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                     .padding(20.dp)
             ) {
                 IconButton(
-                    onClick = { /*TODO*/ },
+                    onClick = { onNavigateBack() },
                     modifier = Modifier
                         .background(Color.White, CircleShape)
                 ) {
@@ -117,6 +121,7 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                 .padding(horizontal = 20.dp)
         ) {
             Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxHeight()
                     .padding(bottom = 20.dp),
@@ -128,7 +133,7 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = formatTime(workoutlength),
+                        text = formatTime(workoutLength),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White,
                         fontSize = 36.sp,
@@ -136,10 +141,11 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                     )
                 }
 
+                // MUSIC PLAYER
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(15.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(300.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.secondary)
                         .padding(20.dp),
@@ -238,12 +244,4 @@ private fun formatTime(seconds: Long): String {
     val mins = (seconds / 60) % 60
     val secs = seconds % 60
     return "%02d:%02d".format(mins, secs)
-}
-
-@Preview(showBackground = true)
-@Composable
-fun WorkoutScreenPreview() {
-    CadenceTheme {
-        WorkoutScreen()
-    }
 }

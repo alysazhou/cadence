@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,7 +62,10 @@ import com.cs407.cadence.ui.theme.CadenceTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToWorkout: () -> Unit
+) {
     Scaffold(
         topBar = {
 
@@ -72,7 +76,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp)
+                .padding(20.dp)
         ) {
             Column(
                 verticalArrangement = Arrangement
@@ -174,7 +178,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                         .fillMaxWidth()
                         .height(180.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { /* TODO: Handle Navigation Here */ }
+                        .clickable { onNavigateToWorkout() }
                 ) {
                     Surface(
                         modifier = Modifier
@@ -262,7 +266,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
 // STATS
 @Composable
-fun Stat(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String) {
+fun Stat(icon: ImageVector, value: String, label: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -285,13 +289,5 @@ fun Stat(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, l
             color = Color.Black
         )
 
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    CadenceTheme {
-        HomeScreen()
     }
 }
