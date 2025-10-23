@@ -55,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cs407.cadence.R
+import com.cs407.cadence.ui.components.StatsRow
 import com.cs407.cadence.ui.theme.CadenceTheme
 
 
@@ -77,6 +78,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement
                     .spacedBy(20.dp),
             ) {
+                // HEADER
                 Box(
                     contentAlignment = Alignment.TopStart,
                     modifier = Modifier
@@ -246,20 +248,10 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                         )
 
                         // row of stats
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround, // Distribute items evenly
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // bpm
-                            Stat(icon = Icons.Default.Favorite, value = "180", label = " bpm")
-                            // miles
-                            Stat(icon = Icons.Default.Place, value = "3.1", label = " mi")
-                            // minutes
-                            Stat(icon = Icons.Default.Timer, value = "28", label = " min")
-                            // calories
-                            Stat(icon = Icons.Default.LocalFireDepartment, value = "350", label = " cal")
-                        }
+                        StatsRow(
+                            iconColor = MaterialTheme.colorScheme.onPrimary,
+                            labelColor = Color.Black
+                        )
                     }
                 }
             }
