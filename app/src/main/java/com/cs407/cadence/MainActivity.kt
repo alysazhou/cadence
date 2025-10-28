@@ -17,6 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.cs407.cadence.data.models.WorkoutSession
 import com.cs407.cadence.data.repository.WorkoutRepository
+import com.cs407.cadence.data.repository.UserRepository
 import com.cs407.cadence.ui.navigation.BottomNav
 import com.cs407.cadence.ui.screens.HomeScreen
 import com.cs407.cadence.ui.screens.WorkoutScreen
@@ -27,8 +28,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // backend test that runs once when the app starts
+        // authentification test runs once when the app starts
+//        val userRepo = UserRepository(this)
+//
+//        val newUser = userRepo.registerUser("Redet")
+//        println("User registered: $newUser")
+//
+//        val retrievedUser = userRepo.getUser()
+//        println("User retrieved: $retrievedUser")
+//
+//        userRepo.deleteUser()
+//        println("User deleted. Current user: ${userRepo.getUser()}")
+        // end of AUTH test — above code only prints to Logcat, not UI
 
+        // CRUD backend test that runs once when the app starts
 //        val repo = WorkoutRepository()
 //        val newSession = WorkoutSession(
 //            id = 1,
@@ -47,7 +60,7 @@ class MainActivity : ComponentActivity() {
 //        repo.deleteAllSessions()
 //        println(repo.getAllSessions()) // empty list
 
-        // end of test ... above code only prints to Logcat, not UI
+        // end of CRUD test ... above code only prints to Logcat, not UI
 
         setContent {
             CadenceTheme {
