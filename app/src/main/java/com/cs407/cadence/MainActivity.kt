@@ -8,20 +8,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.cs407.cadence.data.models.WorkoutSession
-import com.cs407.cadence.data.repository.WorkoutRepository
 import com.cs407.cadence.data.repository.UserRepository
 import com.cs407.cadence.ui.navigation.BottomNav
+import com.cs407.cadence.ui.screens.AuthState
 import com.cs407.cadence.ui.screens.HomeScreen
 import com.cs407.cadence.ui.screens.WorkoutScreen
 import com.cs407.cadence.ui.screens.LogScreen
+import com.cs407.cadence.ui.screens.LoginScreen
+import com.cs407.cadence.ui.screens.LoginScreenViewModel
+import com.cs407.cadence.ui.screens.LoginScreenViewModelFactory
 import com.cs407.cadence.ui.theme.CadenceTheme
 
 class MainActivity : ComponentActivity() {
@@ -64,48 +69,78 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CadenceTheme {
-                val navController = rememberNavController()
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
 
-                Scaffold(
-                    containerColor = Color.Transparent,
-                    bottomBar = {
-                        if (currentRoute == "home" || currentRoute == "log") {
-                            BottomNav(navController = navController)
-                        }
-                    }
-                ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "home",
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
-                        composable("home") {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background
-                            ) {
-                                HomeScreen(
-                                    onNavigateToWorkout = { navController.navigate("workout") }
-                                )
+                // LOGIN
+                val userRepository = UserRepository(applicationContext)
+                val loginViewModel: LoginScreenViewModel = viewModel(
+                    factory = LoginScreenViewModelFactory(userRepository)
+                )
+                val authState by loginViewModel.authState.collectAsStateWithLifecycle()
+
+
+                // AUTH CHECK
+                val startDestination = when (authState) {
+                    AuthState.AUTHENTICATED -> "home"
+                    AuthState.UNAUTHENTICATED -> "login"
+                    AuthState.UNKNOWN -> "loading"
+                }
+
+                if (authState == AuthState.UNKNOWN) {
+                    // TODO: loading screen
+                }
+                else {
+                    // NAVIGATION
+                    val navController = rememberNavController()
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+
+                    Scaffold(
+                        containerColor = Color.Transparent,
+                        bottomBar = {
+                            if (currentRoute == "home" || currentRoute == "log") {
+                                BottomNav(navController = navController)
                             }
                         }
-
-                        composable("workout") {
-                            WorkoutScreen(
-                                onNavigateBack = {
-                                    navController.popBackStack()
+                    ) { innerPadding ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                            modifier = Modifier.padding(innerPadding)
+                        ) {
+                            composable("home") {
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.background
+                                ) {
+                                    HomeScreen(
+                                        onNavigateToWorkout = { navController.navigate("workout") }
+                                    )
                                 }
-                            )
-                        }
+                            }
 
-                        composable("log") {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background
-                            ) {
-                                LogScreen()
+                            composable("login") {
+                                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.onPrimary) {
+                                    LoginScreen(
+                                        onRegister = { username -> loginViewModel.registerUser(username) }
+                                    )
+                                }
+                            }
+
+                            composable("workout") {
+                                WorkoutScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStack()
+                                    }
+                                )
+                            }
+
+                            composable("log") {
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.background
+                                ) {
+                                    LogScreen()
+                                }
                             }
                         }
                     }

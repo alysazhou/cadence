@@ -1,5 +1,6 @@
 package com.cs407.cadence.ui.screens
 
+import android.app.Application
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -16,34 +17,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,7 +41,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,19 +50,20 @@ import com.cs407.cadence.data.ActivityRepository
 import com.cs407.cadence.ui.components.ActivitySelectionDialog
 import com.cs407.cadence.ui.components.GenreSelectionDialog
 import com.cs407.cadence.ui.components.LogCard
-import com.cs407.cadence.ui.data.WorkoutData
-import com.cs407.cadence.ui.theme.CadenceTheme
-import com.cs407.cadence.ui.screens.HomeScreenViewModel
+import com.cs407.cadence.data.models.WorkoutSession
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeScreenViewModel = viewModel(),
+    viewModel: HomeScreenViewModel = viewModel(
+        factory = HomeScreenViewModelFactory(androidx.compose.ui.platform.LocalContext.current.applicationContext as Application)
+    ),
     onNavigateToWorkout: () -> Unit
 ) {
-    val placeholderData = WorkoutData(
+    val placeholderData = WorkoutSession(
+        id = 1,
         date = "00/00/0000",
         bpm = 180,
         distance = 3.1,
@@ -85,7 +73,6 @@ fun HomeScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
-    val genreOptions = activity?.compatibleGenres ?: emptyList()
 
     Scaffold(
         topBar = {
@@ -136,16 +123,21 @@ fun HomeScreen(
                         .background(MaterialTheme.colorScheme.onPrimary)
                 ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .padding(20.dp)
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Welcome back",
+                            text = "Welcome back,",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 24.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            text = viewModel.username ?: "User",
                             fontWeight = FontWeight.Bold,
                             fontSize = 32.sp,
                             color = Color.White
                         )
+                        Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Quickstart your customized workout here by selecting an activity and genre.",
                             fontSize = 16.sp,
@@ -259,7 +251,7 @@ fun HomeScreen(
                                 fontSize = 24.sp
                             )
                             Icon(
-                                imageVector = Icons.Default.PlayArrow, // Or any other icon
+                                imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Start Icon",
                                 tint = Color.Black, // Adjust color as needed
                                 modifier = Modifier.size(24.dp)
@@ -288,7 +280,7 @@ fun HomeScreen(
                         modifier = Modifier.height(10.dp)
                     )
                     LogCard(
-                        workoutData = placeholderData,
+                        workoutSession = placeholderData,
                         cardColor = MaterialTheme.colorScheme.primary,
                         dateColor = Color.Black,
                         iconColor = MaterialTheme.colorScheme.onPrimary,

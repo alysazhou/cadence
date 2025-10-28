@@ -1,23 +1,30 @@
 package com.cs407.cadence.ui.screens
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import com.cs407.cadence.data.ActivityRepository
+import com.cs407.cadence.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 // ACTIVITY TYPE TO GENRES
 val allActivities = ActivityRepository.getActivityNames()
 
-data class HomeScreenState (
+data class HomeScreenUiState (
     val selectedActivity: String = allActivities.first(),
     val selectedGenre: String = ActivityRepository.findActivityByName(allActivities.first())!!.compatibleGenres.first(),
     val showActivitySelector: Boolean = false,
     val showGenreSelector: Boolean = false
 )
-class HomeScreenViewModel : ViewModel() {
+class HomeScreenViewModel(application: Application): ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeScreenState())
-    val uiState = _uiState.asStateFlow()
+    private val userRepository =
+        UserRepository(application.applicationContext)
+
+    val username: String? = userRepository.getUser()?.name
+    private val _uiState = MutableStateFlow(HomeScreenUiState())
+    val uiState: StateFlow<HomeScreenUiState> = _uiState.asStateFlow()
 
     fun onActivitySelected(activityName: String) {
         val selectedActivity = ActivityRepository.findActivityByName(activityName) ?: return
@@ -32,7 +39,6 @@ class HomeScreenViewModel : ViewModel() {
     }
 
     fun onGenreSelected(genre: String) {
-        // select genre and close dialog
         _uiState.value = _uiState.value.copy(selectedGenre = genre, showGenreSelector = false)
     }
 
@@ -50,5 +56,15 @@ class HomeScreenViewModel : ViewModel() {
 
     fun onGenreButtonClick() {
         _uiState.value = _uiState.value.copy(showGenreSelector = true)
+    }
+}
+
+class HomeScreenViewModelFactory(private val application: Application) : androidx.lifecycle.ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HomeScreenViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return HomeScreenViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
