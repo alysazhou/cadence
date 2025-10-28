@@ -67,6 +67,10 @@ import com.cs407.cadence.ui.data.WorkoutData
 import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.screens.HomeScreenViewModel
 
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import com.cs407.cadence.data.repository.UserRepository
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +86,11 @@ fun HomeScreen(
         time = 30,
         calories = 100
     )
+
+    val context = LocalContext.current
+    val userRepository = remember { UserRepository(context) }
+    val user = userRepository.getUser()
+    val username = user?.name ?: ""
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
@@ -141,7 +150,7 @@ fun HomeScreen(
                             .padding(20.dp)
                     ) {
                         Text(
-                            text = "Welcome back",
+                            text = if (username.isNotEmpty()) "Welcome back, $username" else "Welcome back",
                             fontWeight = FontWeight.Bold,
                             fontSize = 32.sp,
                             color = Color.White
@@ -330,3 +339,4 @@ fun Stat(icon: ImageVector, value: String, label: String) {
 }
 
 // Hi
+// heyyy - redet
