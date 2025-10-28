@@ -51,7 +51,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cs407.cadence.R
-import com.cs407.cadence.ui.components.StatsRow
+import com.cs407.cadence.ui.components.LogCard
+import com.cs407.cadence.ui.data.WorkoutData
 import com.cs407.cadence.ui.theme.CadenceTheme
 import kotlinx.coroutines.delay
 
@@ -61,6 +62,14 @@ fun WorkoutScreen(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit
 ) {
+
+    val placeholderData = WorkoutData(
+        date = "00/00/0000",
+        bpm = 180,
+        distance = 3.1,
+        time = 30,
+        calories = 100
+    )
 
     var workoutLength by remember { mutableStateOf(0L) }
     var isPlaying by remember { mutableStateOf(true) }
@@ -211,9 +220,13 @@ fun WorkoutScreen(
                         }
                     }
                 }
-                StatsRow(
-                    modifier.padding(top = 10.dp),
-                    labelColor = Color.White
+                LogCard(
+                    workoutData = placeholderData,
+                    cardColor = Color.Transparent,
+                    dateColor = Color.White,
+                    iconColor = Color.White,
+                    labelColor = Color.White,
+                    hasLabel = false
                 )
                 // END BUTTON
                 Button(

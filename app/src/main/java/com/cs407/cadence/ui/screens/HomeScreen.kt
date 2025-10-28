@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -55,17 +56,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
-import com.cs407.cadence.ui.components.StatsRow
+import com.cs407.cadence.data.ActivityRepository
+import com.cs407.cadence.ui.components.ActivitySelectionDialog
+import com.cs407.cadence.ui.components.GenreSelectionDialog
+import com.cs407.cadence.ui.components.LogCard
+import com.cs407.cadence.ui.data.WorkoutData
 import com.cs407.cadence.ui.theme.CadenceTheme
+import com.cs407.cadence.ui.screens.HomeScreenViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    viewModel: HomeScreenViewModel = viewModel(),
     onNavigateToWorkout: () -> Unit
 ) {
+    val placeholderData = WorkoutData(
+        date = "00/00/0000",
+        bpm = 180,
+        distance = 3.1,
+        time = 30,
+        calories = 100
+    )
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
+    val genreOptions = activity?.compatibleGenres ?: emptyList()
+
     Scaffold(
         topBar = {
 
@@ -78,6 +99,30 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .padding(20.dp)
         ) {
+
+            // ACTIVITY SELECTION DIALOG
+            if (uiState.showActivitySelector) {
+                ActivitySelectionDialog(
+                    activities = ActivityRepository.getAllActivities(),
+                    currentSelection = uiState.selectedActivity,
+                    onDismiss = { viewModel.onActivitySelectorDismiss() },
+                    onSelect = { activityName -> viewModel.onActivitySelected(activityName) }
+                )
+            }
+
+            // GENRE SELECTION DIALOG
+            if (uiState.showGenreSelector) {
+                val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
+                val genreOptions = activity?.compatibleGenres ?: emptyList()
+
+                GenreSelectionDialog(
+                    options = genreOptions,
+                    onDismiss = { viewModel.onGenreSelectorDismiss() },
+                    currentSelection = uiState.selectedGenre,
+                    onSelect = { genre -> viewModel.onGenreSelected(genre) }
+                )
+            }
+
             Column(
                 verticalArrangement = Arrangement
                     .spacedBy(20.dp),
@@ -119,7 +164,7 @@ fun HomeScreen(
                     Button(
                         modifier = Modifier
                             .weight(1f),
-                        onClick = { /*TODO*/ },
+                        onClick = { viewModel.onActivityButtonClick() },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(20.dp),
                     ) {
@@ -134,8 +179,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.tertiary
                             )
                             Text(
-                                // TODO: replace with actual data
-                                text = "Running",
+                                text = uiState.selectedActivity,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.Black
                             )
@@ -146,7 +190,7 @@ fun HomeScreen(
                     Button(
                         modifier = Modifier
                             .weight(1f),
-                        onClick = { /*TODO*/ },
+                        onClick = { viewModel.onGenreButtonClick() },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(20.dp),
                     ) {
@@ -162,8 +206,7 @@ fun HomeScreen(
 
                             )
                             Text(
-                                // TODO: replace with actual data
-                                text = "Hip-hop",
+                                text = uiState.selectedGenre,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.Black
                             )
@@ -233,30 +276,24 @@ fun HomeScreen(
 
                 }
 
-                // LAST RUN
-                Button(
-                    onClick = { /*TODO*/ },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(20.dp),
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        Text(
-                            text = "Last activity summary",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary
-
-                        )
-
-                        // row of stats
-                        StatsRow(
-                            iconColor = MaterialTheme.colorScheme.onPrimary,
-                            labelColor = Color.Black
-                        )
-                    }
+                // LAST WORKOUT
+                Column(){
+                    Text(
+                        text = "Last workout",
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 20.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+                    LogCard(
+                        workoutData = placeholderData,
+                        cardColor = MaterialTheme.colorScheme.primary,
+                        dateColor = Color.Black,
+                        iconColor = MaterialTheme.colorScheme.onPrimary,
+                        labelColor = Color.Black
+                    )
                 }
             }
         }

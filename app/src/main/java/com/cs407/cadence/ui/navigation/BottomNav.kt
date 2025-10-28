@@ -13,10 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.navigation.NavController
 import com.cs407.cadence.R
 
 @Composable
-fun BottomNav() {
+fun BottomNav(navController: NavController) {
     // A list of navigation items
     val items = listOf(
         NavigationItem.Home,
@@ -29,7 +30,6 @@ fun BottomNav() {
     ) {
         items.forEach { item ->
             NavigationBarItem(
-
                 icon = { Icon(item.icon, contentDescription = item.title, tint = Color.White) },
                 label = { Text(
                     text = item.title,
@@ -37,7 +37,7 @@ fun BottomNav() {
                     color = Color.White
                 ) },
                 selected = false, // This will be dynamic later
-                onClick = { /* TODO: Handle navigation */ }
+                onClick = { navController.navigate(route = item.route) }
             )
         }
     }

@@ -17,15 +17,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import com.cs407.cadence.ui.screens.HomeScreen
-
-// You can remove the darkColorScheme if you want, but it's not necessary.
-// We just need to define the one scheme we will be using.
 private val ColorScheme = lightColorScheme(
-    primary = Color(0xFFFFFFFF), // Your custom primary color
+    primary = Color(0xFFFFFFFF),
     onPrimary = Color(0xFF0094C4),
     secondary = Color(0xFFFFBB33),
     tertiary = Color(0xFF888888),
-    background = Color(0xFFEAEAEA), // Your custom background
+    background = Color(0xFFEAEAEA),
     surface = Color(0xFFEAEAEA),
 
     /* Other default colors to override if needed */
