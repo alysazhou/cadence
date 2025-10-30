@@ -3,12 +3,10 @@ package com.cs407.cadence.data.repository
 import com.cs407.cadence.data.models.WorkoutSession
 
 /**
- * WorkoutRepository handles CRUD operations for workout sessions.
- * For now, data is stored locally in memory. this can be replaced later.
+ * handles CRUD operations for workout sessions
  */
 class WorkoutRepository {
 
-    // Temporary in-memory storage for workouts
     private val sessions = mutableListOf<WorkoutSession>()
 
     // CREATE — add a new workout session

@@ -1,9 +1,10 @@
 package com.cs407.cadence.data.models
 
 data class WorkoutSession(
-    val id: Int, // to tell workouts apart
+    val id: Int,
     val date: String,
-    val durationMinutes: Int,
-    val distanceKm: Double,
-    val pace: Double
+    val bpm: Int,
+    val distance: Double,
+    val time: Int,
+    val calories: Int
 )

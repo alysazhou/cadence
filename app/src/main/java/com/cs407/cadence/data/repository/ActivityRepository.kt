@@ -1,11 +1,9 @@
 package com.cs407.cadence.data
-
 data class Activity(
     val name: String,
     val description: String,
     val compatibleGenres: List<String>
 )
-
 object ActivityRepository {
     // TODO: replace genres
     private val activities = listOf(

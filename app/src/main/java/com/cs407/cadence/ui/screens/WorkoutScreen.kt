@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
@@ -42,18 +39,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cs407.cadence.R
 import com.cs407.cadence.ui.components.LogCard
-import com.cs407.cadence.ui.data.WorkoutData
-import com.cs407.cadence.ui.theme.CadenceTheme
+import com.cs407.cadence.data.models.WorkoutSession
 import kotlinx.coroutines.delay
 
 
@@ -63,7 +56,8 @@ fun WorkoutScreen(
     onNavigateBack: () -> Unit
 ) {
 
-    val placeholderData = WorkoutData(
+    val placeholderData = WorkoutSession(
+        id = 1,
         date = "00/00/0000",
         bpm = 180,
         distance = 3.1,
@@ -221,7 +215,7 @@ fun WorkoutScreen(
                     }
                 }
                 LogCard(
-                    workoutData = placeholderData,
+                    workoutSession = placeholderData,
                     cardColor = Color.Transparent,
                     dateColor = Color.White,
                     iconColor = Color.White,
