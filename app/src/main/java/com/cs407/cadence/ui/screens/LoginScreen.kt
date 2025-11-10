@@ -104,7 +104,6 @@ fun LoginScreen(
                 focusedLabelColor = Color.Black,
                 unfocusedPlaceholderColor = Color.Gray,
                 focusedPlaceholderColor = Color.Gray
-
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true

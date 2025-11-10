@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,13 +19,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.cs407.cadence.data.repository.UserRepository
 import com.cs407.cadence.ui.navigation.BottomNav
-import com.cs407.cadence.ui.screens.AuthState
+import com.cs407.cadence.ui.viewModels.AuthState
 import com.cs407.cadence.ui.screens.HomeScreen
 import com.cs407.cadence.ui.screens.WorkoutScreen
 import com.cs407.cadence.ui.screens.LogScreen
 import com.cs407.cadence.ui.screens.LoginScreen
-import com.cs407.cadence.ui.screens.LoginScreenViewModel
-import com.cs407.cadence.ui.screens.LoginScreenViewModelFactory
+import com.cs407.cadence.ui.screens.SettingsScreen
+import com.cs407.cadence.ui.screens.WorkoutSetupScreen
+import com.cs407.cadence.ui.viewModels.LoginScreenViewModel
+import com.cs407.cadence.ui.viewModels.LoginScreenViewModelFactory
 import com.cs407.cadence.ui.theme.CadenceTheme
 
 class MainActivity : ComponentActivity() {
@@ -97,7 +98,7 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         containerColor = Color.Transparent,
                         bottomBar = {
-                            if (currentRoute == "home" || currentRoute == "log") {
+                            if (currentRoute == "home" || currentRoute == "log" || currentRoute == "settings") {
                                 BottomNav(navController = navController)
                             }
                         }
@@ -113,7 +114,7 @@ class MainActivity : ComponentActivity() {
                                     color = MaterialTheme.colorScheme.background
                                 ) {
                                     HomeScreen(
-                                        onNavigateToWorkout = { navController.navigate("workout") }
+                                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") }
                                     )
                                 }
                             }
@@ -126,10 +127,19 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            composable("workoutSetup") {
+                                WorkoutSetupScreen(
+                                    onNavigateToWorkout = { navController.navigate("workout") },
+                                    onNavigateBack = { navController.popBackStack() }
+
+                                )
+                            }
+
                             composable("workout") {
                                 WorkoutScreen(
-                                    onNavigateBack = {
-                                        navController.popBackStack()
+
+                                    onNavigateToHome = {
+                                        navController.navigate("home")
                                     }
                                 )
                             }
@@ -140,6 +150,19 @@ class MainActivity : ComponentActivity() {
                                     color = MaterialTheme.colorScheme.background
                                 ) {
                                     LogScreen()
+                                }
+                            }
+
+                            composable("settings") {
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.background
+                                ) {
+                                    SettingsScreen(
+                                        displayName = "placeholder",
+                                        onDisplayNameChange = { },
+                                        onClearLog = { },
+                                    )
                                 }
                             }
                         }

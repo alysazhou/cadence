@@ -32,10 +32,10 @@ import com.cs407.cadence.data.models.WorkoutSession
 fun LogCard(
     modifier: Modifier = Modifier,
     workoutSession: WorkoutSession,
-    cardColor: Color = MaterialTheme.colorScheme.primary,
-    dateColor: Color = Color.Black,
-    iconColor: Color = MaterialTheme.colorScheme.onPrimary,
-    labelColor: Color = Color.Black,
+    cardColor: Color = MaterialTheme.colorScheme.surface,
+    dateColor: Color = MaterialTheme.colorScheme.onPrimary,
+    iconColor: Color = MaterialTheme.colorScheme.secondary,
+    labelColor: Color = MaterialTheme.colorScheme.onPrimary,
     hasLabel: Boolean = true,
 ) {
     Box(

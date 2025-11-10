@@ -1,4 +1,4 @@
-package com.cs407.cadence.ui.screens
+package com.cs407.cadence.ui.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

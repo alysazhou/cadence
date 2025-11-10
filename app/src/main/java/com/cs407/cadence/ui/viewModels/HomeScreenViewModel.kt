@@ -1,12 +1,15 @@
-package com.cs407.cadence.ui.screens
+package com.cs407.cadence.ui.viewModels
 
 import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.cs407.cadence.data.ActivityRepository
 import com.cs407.cadence.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDate
 
 // ACTIVITY TYPE TO GENRES
 val allActivities = ActivityRepository.getActivityNames()
@@ -59,7 +62,7 @@ class HomeScreenViewModel(application: Application): ViewModel() {
     }
 }
 
-class HomeScreenViewModelFactory(private val application: Application) : androidx.lifecycle.ViewModelProvider.Factory {
+class HomeScreenViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeScreenViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
