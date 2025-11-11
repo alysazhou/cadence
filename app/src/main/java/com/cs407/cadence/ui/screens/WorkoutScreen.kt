@@ -318,7 +318,7 @@ fun WorkoutScreen(
                         onClick = { onNavigateToHome() },
                         contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        border = BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
+                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
                     ) {
                             Text(
                                 text = "Pause",

@@ -281,7 +281,7 @@ fun WorkoutSetupScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Start",
+                        text = "Start workout",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
@@ -371,7 +371,7 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
                 }
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
-                    contentPadding = PaddingValues(horizontal = 30.dp, vertical = 15.dp) ,
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
@@ -381,7 +381,7 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
                 ) {
                     Text(
                         text = "Done",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
@@ -461,7 +461,7 @@ fun GenreSelectionDialog(
                 }
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
-                    contentPadding = PaddingValues(horizontal = 30.dp, vertical = 15.dp) ,
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
@@ -471,7 +471,7 @@ fun GenreSelectionDialog(
                 ) {
                     Text(
                         text = "Done",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }

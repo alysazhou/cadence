@@ -7,12 +7,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,18 +35,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -58,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
 import com.cs407.cadence.data.models.WorkoutSession
-import com.cs407.cadence.ui.components.LogCard
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModel
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModelFactory
 import java.time.LocalDate
@@ -74,7 +66,8 @@ fun HomeScreen(
     viewModel: HomeScreenViewModel = viewModel(
         factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
     ),
-    onNavigateToWorkoutSetup: () -> Unit
+    onNavigateToWorkoutSetup: () -> Unit,
+    username: String?
 ) {
     val placeholderData = WorkoutSession(
         id = 1,
@@ -86,7 +79,7 @@ fun HomeScreen(
         activity = "Running"
     )
 
-    val username = viewModel.username ?: "User"
+    val displayName = username ?: "User"
     val days = (-2..2).map { LocalDate.now().plusDays(it.toLong()) }
 
     // hardcoded values
@@ -128,7 +121,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text =  username,
+                        text =  displayName,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
