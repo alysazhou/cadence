@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.cs407.cadence.data.ActivityRepository
-import com.cs407.cadence.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,10 +21,6 @@ data class HomeScreenUiState (
 )
 class HomeScreenViewModel(application: Application): ViewModel() {
 
-    private val userRepository =
-        UserRepository(application.applicationContext)
-
-    val username: String? = userRepository.getUser()?.name
     private val _uiState = MutableStateFlow(HomeScreenUiState())
     val uiState: StateFlow<HomeScreenUiState> = _uiState.asStateFlow()
 

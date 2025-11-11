@@ -128,7 +128,6 @@ class UserViewModel : ViewModel() {
     }
 
     fun deleteAccount(password: String) {
-        // Clear any previous errors first
         clearErrors()
 
         if (password.isEmpty()) {
