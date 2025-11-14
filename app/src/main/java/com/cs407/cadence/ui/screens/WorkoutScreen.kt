@@ -62,12 +62,16 @@ import com.cs407.cadence.R
 import com.cs407.cadence.ui.components.LogCard
 import com.cs407.cadence.data.models.WorkoutSession
 import kotlinx.coroutines.delay
+import com.cs407.cadence.data.repository.WorkoutRepository
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 
 @Composable
 fun WorkoutScreen(
     modifier: Modifier = Modifier,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    workoutRepository: WorkoutRepository
 ) {
     val placeholderData = WorkoutSession(
         id = 1,
@@ -80,6 +84,10 @@ fun WorkoutScreen(
     )
 
     var workoutLength by remember { mutableStateOf(0L) }
+    val durationMinutes = ((workoutLength / 60).toInt()).coerceAtLeast(1) //convert seconds to minutes & ensure min is 1
+    val bpm = 180 // hardcoded for neowwww
+    val distanceMiles = 3.1 * (durationMinutes / 30.0) //distance is scaled based on length of workout
+    val calories = (100 * (durationMinutes / 30.0)).toInt().coerceAtLeast(10) //calories are scaled based on length of workout
 
     LaunchedEffect(key1 = true) {
         while (true) {
@@ -191,7 +199,7 @@ fun WorkoutScreen(
                                     )
                                 Row() {
                                     Text(
-                                        text = placeholderData.bpm.toString(),
+                                        text = bpm.toString(),
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onPrimary
@@ -242,7 +250,7 @@ fun WorkoutScreen(
                                     )
                                 Row() {
                                     Text(
-                                        text = placeholderData.distance.toString(),
+                                        text = String.format("%.2f", distanceMiles), //round distance to 2 decimals for workout screen
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onPrimary
@@ -292,7 +300,7 @@ fun WorkoutScreen(
                                     )
                                 Row() {
                                     Text(
-                                        text = placeholderData.calories.toString(),
+                                        text = calories.toString(),
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onPrimary
@@ -332,7 +340,23 @@ fun WorkoutScreen(
                     // END WORKOUT BUTTON
                     Button(
                         shape = RoundedCornerShape(100.dp),
-                        onClick = { onNavigateToHome() },
+                        onClick = { //create a legit workout session upon stopping
+                            val dateString = LocalDate.now()
+                                .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+
+                            val session = WorkoutSession(
+                                id = 0,  //placeholder
+                                date = dateString,
+                                bpm = bpm,
+                                distance = distanceMiles, //stored as raw then displayed as rounded in HomeScreen
+                                time = durationMinutes, //store accurate minutes
+                                calories = calories, //store scaled calories
+                                activity = placeholderData.activity
+                            )
+
+                            workoutRepository.createSession(session) //saves full session w/ accurate metrics
+                            onNavigateToHome()
+                        },
                         contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {

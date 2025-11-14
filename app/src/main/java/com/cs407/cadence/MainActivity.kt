@@ -23,21 +23,24 @@ import com.cs407.cadence.ui.navigation.BottomNav
 import com.cs407.cadence.ui.screens.*
 import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.UserViewModel
+import com.cs407.cadence.data.repository.WorkoutRepository
 
 class MainActivity : ComponentActivity() {
     private val userViewModel: UserViewModel by viewModels()
+    private val workoutRepository = WorkoutRepository() //added so that distance/time are consistent across screens
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             CadenceTheme {
-                CadenceApp(userViewModel)
+                //CadenceApp(userViewModel)
+                CadenceApp(userViewModel, workoutRepository) //pass repository into CadenceApp
             }
         }
     }
 }
 @Composable
-fun CadenceApp(viewModel: UserViewModel) {
+fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) {
     val userState by viewModel.userState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
 
@@ -91,7 +94,8 @@ fun CadenceApp(viewModel: UserViewModel) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     HomeScreen(
                         username = userState?.name,
-                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") }
+                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup")},
+                        workoutRepository = workoutRepository
                     )
                 }
             }
@@ -104,7 +108,10 @@ fun CadenceApp(viewModel: UserViewModel) {
             }
 
             composable("workout") {
-                WorkoutScreen(onNavigateToHome = { navController.navigate("home") })
+                WorkoutScreen(
+                    onNavigateToHome = { navController.navigate("home") },
+                    workoutRepository = workoutRepository
+                )
             }
 
             composable("log") {
