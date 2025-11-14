@@ -16,35 +16,65 @@ val WixMadeforText = FontFamily(
     Font(R.font.wixmadefortext_medium, FontWeight.Medium)
 )
 
-// 2. Update the Typography object to use your new WixMadeforText font family.
 val Typography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        letterSpacing = 2.sp
+    ),
+
     bodyLarge = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Normal,
+        fontSize = 24.sp,
+    ),
+
+    bodyMedium = TextStyle(
         fontFamily = WixMadeforText,
         fontWeight = FontWeight.Normal,
         fontSize = 20.sp,
     ),
 
-    bodyMedium = TextStyle(
-        fontFamily = WixMadeforText,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-    ),
-
     bodySmall = TextStyle(
         fontFamily = WixMadeforText,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
     ),
 
     titleLarge = TextStyle(
         fontFamily = WixMadeforText,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
+        fontSize = 36.sp,
+    ),
+
+    titleMedium = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+    ),
+
+    titleSmall = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+    ),
+
+    labelLarge = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+    ),
+
+    labelMedium = TextStyle(
+        fontFamily = WixMadeforText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
     ),
 
     labelSmall = TextStyle(
         fontFamily = WixMadeforText,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp
-    )
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+    ),
 )

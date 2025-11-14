@@ -44,20 +44,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cs407.cadence.R
 import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.UserViewModel
 
 @Composable
-fun LoginScreen(
-    viewModel: UserViewModel
+fun SetNameScreen(
+    viewModel: UserViewModel,
+    onNavigateToHome: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    val emailError by viewModel.emailError.collectAsStateWithLifecycle()
-    val passwordError by viewModel.passwordError.collectAsStateWithLifecycle()
+    var displayName by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -79,134 +75,58 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // LOGO
-            val logoImage = if (isSystemInDarkTheme()) {
-                R.drawable.cadence_logo_turquoise
-            } else {
-                R.drawable.cadence_logo_blue
-            }
+            Text(
+                text = "What should we call you?",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ){
-                Image(
-                    painter = painterResource(logoImage),
-                    contentDescription = "Cadence logo",
-                    modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    text = "CADENCE",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // DISPLAY NAME INPUT
+            OutlinedTextField(
+                textStyle = MaterialTheme.typography.bodyMedium,
+                value = displayName,
+                onValueChange = { displayName = it },
+                placeholder = { Text(text = "Name", style = MaterialTheme.typography.bodyMedium) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    unfocusedLabelColor = Color.Gray,
+                    focusedLabelColor = Color.Black,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f),
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f)
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true
+            )
 
             Spacer(modifier = Modifier.height(40.dp))
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // EMAIL INPUT
-            OutlinedTextField(
-                textStyle = MaterialTheme.typography.bodyMedium,
-                value = email,
-                onValueChange = { email = it },
-                placeholder = { Text(text ="E-mail address", style = MaterialTheme.typography.bodyMedium) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedLabelColor = Color.Gray,
-                    focusedLabelColor = Color.Black,
-                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f),
-                    focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f)
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // PASSWORD INPUT
-            OutlinedTextField(
-                visualTransformation = PasswordVisualTransformation(),
-                textStyle = MaterialTheme.typography.bodyMedium,
-                value = password,
-                onValueChange = { password = it },
-                placeholder = { Text(text = "Password", style = MaterialTheme.typography.bodyMedium) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedLabelColor = Color.Gray,
-                    focusedLabelColor = Color.Black,
-                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f),
-                    focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f)
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-
-            emailError?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            passwordError?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // SIGN IN  BUTTON
-                OutlinedButton(
-                    shape = RoundedCornerShape(100.dp),
-                    onClick = { viewModel.signIn(email, password) },
-                    contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text(
-                        text = "Sign in",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-
-                // REGISTER BUTTON
+                // COMPLETE ONBOARDING BUTTON
                 Button(
                     contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
-                    onClick = { viewModel.register(email, password) },
+                    onClick = {
+                        viewModel.setDisplayName(displayName)
+                        onNavigateToHome()
+                    },
                     shape = RoundedCornerShape(100.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                     ),
                 ) {
                     Text(
-                        text = "Register",
+                        text = "Let's go!",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
