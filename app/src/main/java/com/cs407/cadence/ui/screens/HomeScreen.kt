@@ -57,6 +57,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import com.cs407.cadence.data.repository.WorkoutRepository
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +68,8 @@ fun HomeScreen(
         factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
     ),
     onNavigateToWorkoutSetup: () -> Unit,
-    username: String?
+    username: String?,
+    workoutRepository: WorkoutRepository // lets HomeScreen access the saved workout sessions
 ) {
     val placeholderData = WorkoutSession(
         id = 1,
@@ -79,6 +81,9 @@ fun HomeScreen(
         activity = "Running"
     )
 
+    val recentSession = workoutRepository
+        .getAllSessions()
+        .lastOrNull() // get the latest workout, or null if no sessions saved
     val displayName = username ?: "User"
     val days = (-2..2).map { LocalDate.now().plusDays(it.toLong()) }
 
@@ -166,7 +171,9 @@ fun HomeScreen(
                     }
 
                     // LAST WORKOUT
-                    RecentActivityCard(workoutSession = placeholderData)
+                    RecentActivityCard(
+                        workoutSession = recentSession ?: placeholderData //use latest if available
+                    )
                 }
             }
         }
@@ -336,7 +343,7 @@ fun RecentActivityCard(
                 )
                 Stat(
                     icon = Icons.Default.Place,
-                    value = workoutSession.distance.toString(),
+                    value = String.format("%.1f", workoutSession.distance), //rounded distance to one decimal point
                     label = "mi",
                 )
                 Stat(
