@@ -84,11 +84,18 @@ fun SetNameScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             // DISPLAY NAME INPUT
+
+            val maxChar = 12
             OutlinedTextField(
+
                 textStyle = MaterialTheme.typography.bodyMedium,
                 value = displayName,
-                onValueChange = { displayName = it },
-                placeholder = { Text(text = "Name", style = MaterialTheme.typography.bodyMedium) },
+                onValueChange = {
+                    if (it.length <= maxChar) {
+                        displayName = it
+                    }
+                },
+                placeholder = { Text(text = "Name (0-12 characters)", style = MaterialTheme.typography.bodyMedium) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -117,7 +124,13 @@ fun SetNameScreen(
                 Button(
                     contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                     onClick = {
-                        viewModel.setDisplayName(displayName)
+                        if(displayName == "") {
+                            viewModel.setDisplayName("User")
+                        }
+                        else {
+                            viewModel.setDisplayName(displayName)
+                        }
+
                         onNavigateToHome()
                     },
                     shape = RoundedCornerShape(100.dp),

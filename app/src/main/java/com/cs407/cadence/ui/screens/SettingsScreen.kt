@@ -121,9 +121,15 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val maxChar = 12
                     BasicTextField(
+                        singleLine = true,
                         value = tempName,
-                        onValueChange = { tempName = it },
+                        onValueChange = {
+                            if (it.length <= maxChar) {
+                                tempName = it
+                            }
+                        },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onPrimary
                         ),
