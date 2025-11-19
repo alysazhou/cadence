@@ -15,10 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.cs407.cadence.ui.navigation.BottomNav
 import com.cs407.cadence.ui.screens.*
 import com.cs407.cadence.ui.theme.CadenceTheme
@@ -28,6 +30,7 @@ import com.cs407.cadence.data.repository.WorkoutRepository
 class MainActivity : ComponentActivity() {
     private val userViewModel: UserViewModel by viewModels()
     private val workoutRepository = WorkoutRepository() //added so that distance/time are consistent across screens
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +46,7 @@ class MainActivity : ComponentActivity() {
 fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) {
     val userState by viewModel.userState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    val isMusicConnected by viewModel.isMusicConnected.collectAsStateWithLifecycle()
 
     LaunchedEffect(userState?.uid) {
         val route = when {
@@ -85,10 +89,29 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
                 SetNameScreen(
                     viewModel = viewModel,
                     onNavigateToHome = {
-                        navController.navigate("home") { popUpTo("setName") { inclusive = true } }
+                        navController.navigate("home") {
+                            popUpTo("setName") { inclusive = true }
+                        }
                     }
                 )
             }
+
+//            composable("musicAuth") {
+//                MusicAuthScreen(
+//                    onAuthComplete = {
+//                        viewModel.setMusicConnected(true)
+//                        navController.navigate("home") {
+//                            popUpTo("musicAuth") { inclusive = true }
+//                        }
+//                    },
+//                    onSkip = {
+//                        viewModel.setMusicConnected(false)
+//                        navController.navigate("home") {
+//                            popUpTo("musicAuth") { inclusive = true }
+//                        }
+//                    }
+//                )
+//            }
 
             composable("home") {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -102,15 +125,26 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
 
             composable("workoutSetup") {
                 WorkoutSetupScreen(
-                    onNavigateToWorkout = { navController.navigate("workout") },
+                    onNavigateToWorkout = { selectedGenre ->
+                        navController.navigate("workout/$selectedGenre")
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable("workout") {
+            composable(
+                route = "workout/{genre}",
+                arguments = listOf(navArgument("genre") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val genre = backStackEntry.arguments?.getString("genre") ?: "pop" // Default to pop
                 WorkoutScreen(
-                    onNavigateToHome = { navController.navigate("home") },
-                    workoutRepository = workoutRepository
+                    onNavigateToHome = {
+                        navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    },
+                    workoutRepository = workoutRepository,
+                    selectedGenre = genre // Pass the genre here
                 )
             }
 
@@ -119,11 +153,16 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             }
 
             composable("settings") {
+                // --- UPDATE THIS COMPOSABLE CALL ---
                 SettingsScreen(
                     viewModel = viewModel,
                     displayName = userState?.name ?: "",
                     onDisplayNameChange = { newName -> viewModel.setDisplayName(newName) },
                     onClearLog = { /* TODO */ },
+                    isMusicConnected = isMusicConnected,
+                    onMusicAuth = { isConnected ->
+                        viewModel.setMusicConnected(isConnected)
+                    }
                 )
             }
         }

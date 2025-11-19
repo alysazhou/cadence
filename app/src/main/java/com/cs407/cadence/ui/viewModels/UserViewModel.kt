@@ -1,6 +1,5 @@
 package com.cs407.cadence.ui.viewModels
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import checkEmail
 import checkPassword
@@ -28,6 +27,14 @@ class UserViewModel : ViewModel() {
 
     private val _passwordError = MutableStateFlow<String?>(null)
     val passwordError = _passwordError.asStateFlow()
+
+    // MUSIC AUTHORIZATION
+    private val _isMusicConnected = MutableStateFlow(false)
+    val isMusicConnected = _isMusicConnected.asStateFlow()
+
+    fun setMusicConnected(isConnected: Boolean) {
+        _isMusicConnected.value = isConnected
+    }
 
     fun clearErrors() {
         _emailError.value = null

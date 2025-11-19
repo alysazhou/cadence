@@ -181,7 +181,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // SIGN IN  BUTTON
+                // SIGN IN BUTTON
                 OutlinedButton(
                     shape = RoundedCornerShape(100.dp),
                     onClick = { viewModel.signIn(email, password) },

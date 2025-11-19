@@ -1,5 +1,7 @@
 package com.cs407.cadence.ui.screens
 
+import com.cs407.cadence.data.network.SpotifyService
+import android.content.pm.PackageManager
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,24 +59,27 @@ import com.cs407.cadence.data.Activity
 import com.cs407.cadence.data.ActivityRepository
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModel
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModelFactory
+import com.cs407.cadence.ui.viewModels.UserViewModel
 
 @Composable
 fun WorkoutSetupScreen(
-    viewModel: HomeScreenViewModel = viewModel(
-        factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
-    ),
-    onNavigateToWorkout: () -> Unit,
-    onNavigateBack: () -> Unit
+    userViewModel: UserViewModel = viewModel(),
+    onNavigateToWorkout: (String) -> Unit,
+    onNavigateBack: () -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val homeScreenViewModel: HomeScreenViewModel = viewModel(
+        factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+    val uiState by homeScreenViewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
     // DIALOGS
     if (uiState.showActivitySelector) {
         ActivitySelectionDialog(
             activities = ActivityRepository.getAllActivities(),
             currentSelection = uiState.selectedActivity,
-            onDismiss = { viewModel.onActivitySelectorDismiss() },
-            onSelect = { activityName -> viewModel.onActivitySelected(activityName) }
+            onDismiss = { homeScreenViewModel.onActivitySelectorDismiss() },
+            onSelect = { activityName -> homeScreenViewModel.onActivitySelected(activityName) }
         )
     }
 
@@ -84,9 +89,9 @@ fun WorkoutSetupScreen(
 
         GenreSelectionDialog(
             options = genreOptions,
-            onDismiss = { viewModel.onGenreSelectorDismiss() },
+            onDismiss = { homeScreenViewModel.onGenreSelectorDismiss() },
             currentSelection = uiState.selectedGenre,
-            onSelect = { genre -> viewModel.onGenreSelected(genre) }
+            onSelect = { genre -> homeScreenViewModel.onGenreSelected(genre) }
         )
     }
 
@@ -144,7 +149,7 @@ fun WorkoutSetupScreen(
                 // ACTIVITY BUTTON
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { viewModel.onActivityButtonClick() },
+                    onClick = { homeScreenViewModel.onActivityButtonClick() },
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(0.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -206,7 +211,7 @@ fun WorkoutSetupScreen(
                 // GENRE BUTTON
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { viewModel.onGenreButtonClick() },
+                    onClick = { homeScreenViewModel.onGenreButtonClick() },
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(0.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -267,7 +272,23 @@ fun WorkoutSetupScreen(
             // START WORKOUT BUTTON
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToWorkout() },
+                onClick = {
+                    val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                    val metadata = applicationInfo.metaData
+                    val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
+                    val redirectUri = "com.cs407.cadence.auth://callback"
+                    SpotifyService.buildConnectionParams(clientId, redirectUri)
+
+                    SpotifyService.connect(
+                        context = context,
+                        onSuccess = {
+                            onNavigateToWorkout(uiState.selectedGenre)
+                        },
+                        onFailure = { throwable ->
+                            println("Failed to connect to Spotify: ${throwable.message}")
+                        }
+                    )
+                },
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
