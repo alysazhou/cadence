@@ -20,8 +20,8 @@ android {
 
     defaultConfig {
         applicationId = "com.cs407.cadence"
-        minSdk = 36
-        targetSdk = 36
+        minSdk = 26 //36
+        targetSdk = 34//36
         versionCode = 1
         versionName = "1.0"
 
