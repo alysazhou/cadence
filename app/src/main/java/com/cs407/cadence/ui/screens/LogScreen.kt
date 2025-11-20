@@ -21,6 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,25 +33,44 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.data.models.WorkoutSession
+import com.cs407.cadence.data.repository.FirebaseWorkoutRepository
 import com.cs407.cadence.ui.theme.CadenceTheme
+import com.cs407.cadence.ui.viewModels.UserViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.items
+
 
 @Composable
 fun LogScreen(
     modifier: Modifier = Modifier
 ) {
 
-    val placeholderData = WorkoutSession(
-        id = 1,
-        date = "05/20/2004",
-        bpm = 180,
-        distance = 3.1,
-        time = 30,
-        calories = 100,
-        activity = "Running"
-    )
+    val userViewModel: UserViewModel = viewModel()
+    val uid = userViewModel.userState.collectAsState().value?.uid
+    var sessions by remember { mutableStateOf<List<WorkoutSession>>(emptyList()) }
+
+//    val placeholderData = WorkoutSession(
+//        id = 1,
+//        date = "05/20/2004",
+//        bpm = 180,
+//        distance = 3.1,
+//        time = 30,
+//        calories = 100,
+//        activity = "Running"
+//    )
+
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            val repo = FirebaseWorkoutRepository()
+            sessions = repo.getAllSessions(uid)
+                .sortedByDescending { it.date }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -70,6 +93,21 @@ fun LogScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
+            //if no logged workouts yet
+            if (sessions.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("No workouts logged yet",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    )
+                }
+                return@Scaffold
+            }
+
             LazyColumn(
                 verticalArrangement = Arrangement
                     .spacedBy(10.dp),
@@ -83,7 +121,11 @@ fun LogScreen(
                     Spacer(
                         modifier = Modifier.height(10.dp)
                     )
-                    MostRecentActivityCard(workoutSession = placeholderData)
+                    //MostRecentActivityCard(workoutSession = placeholderData)
+                    //MostRecentActivityCard(sessions.first())
+                    MostRecentActivityCard(
+                        workoutSession = sessions.first()
+                    )
                     Spacer(
                         modifier = Modifier.height(10.dp)
                     )
@@ -98,14 +140,17 @@ fun LogScreen(
                     Spacer(
                         modifier = Modifier.height(10.dp)
                     )
-                    LogCard(workoutSession = placeholderData)
+                    //LogCard(workoutSession = placeholderData)
                 }
 
-                items(9) { index ->
-                    LogCard(workoutSession = placeholderData)
+//                items(9) { index ->
+//                    LogCard(workoutSession = placeholderData)
+//                }
+//
+//                item() {}
+                items(sessions.drop(1)) { session ->
+                    LogCard(session)
                 }
-
-                item() {}
             }
         }
     }
