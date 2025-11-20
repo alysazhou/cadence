@@ -30,6 +30,10 @@ android {
         manifestPlaceholders["spotifyClientId"] = localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""
         manifestPlaceholders["redirectHostName"] = "callback"
         manifestPlaceholders["redirectSchemeName"] = "com.cs407.cadence.auth"
+
+        //Google Maps API key is added to manifest through a placeholder below.
+        //Allows us to keep the key out of version control while
+        //still injecting it safely into AndroidManifest.xml
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
     }
 
@@ -80,8 +84,11 @@ dependencies {
     implementation(libs.androidx.ink.brush)
     implementation(libs.play.services.auth)
     implementation(libs.androidx.compose.foundation)
+    //Required for GPS tracking functionality -- gives access to device’s location provider
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    //Jetpack Compose wrapper for Google Maps SDK -- allows use of <GoogleMap> inside composables
     implementation("com.google.maps.android:maps-compose:4.1.1")
+    //Core Google Maps library -- needed in order for Google Map tiles can render on MapScreen
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation(libs.androidx.ui)
     testImplementation(libs.junit)

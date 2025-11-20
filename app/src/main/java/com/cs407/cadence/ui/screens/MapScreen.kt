@@ -31,7 +31,7 @@ import com.google.android.gms.maps.model.LatLng
 fun MapScreen(navController: NavController) {
 
     Column {
-        // Top bar with back arrow
+        //Added a top bar w/ back arrow
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -43,7 +43,7 @@ fun MapScreen(navController: NavController) {
                 contentDescription = "Back",
                 modifier = Modifier
                     .size(32.dp)
-                    .clickable { navController.popBackStack() }
+                    .clickable { navController.popBackStack() } //Return to home
             )
 
             Text(
@@ -52,9 +52,12 @@ fun MapScreen(navController: NavController) {
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
-
+        //Rendering GoogleMap() composable confirms that:
+        //google Maps SDK is installed correctly
+        //manifest/API key config is correct
+        //gradle dependencies are set up
         Box(modifier = Modifier.fillMaxSize()) {
-            GoogleMap()
+            GoogleMap() //default map
         }
     }
 }
