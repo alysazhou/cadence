@@ -67,6 +67,7 @@ fun HomeScreen(
     viewModel: HomeScreenViewModel = viewModel(
         factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
     ),
+    navToMap: () -> Unit,
     onNavigateToWorkoutSetup: () -> Unit,
     username: String?,
     workoutRepository: WorkoutRepository // lets HomeScreen access the saved workout sessions
@@ -174,6 +175,14 @@ fun HomeScreen(
                     RecentActivityCard(
                         workoutSession = recentSession ?: placeholderData //use latest if available
                     )
+                    Button(
+                        onClick = { navToMap() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Open Map")
+                    }
+
+
                 }
             }
         }
