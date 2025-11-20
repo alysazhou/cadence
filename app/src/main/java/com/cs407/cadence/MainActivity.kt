@@ -116,8 +116,9 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             composable("home") {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     HomeScreen(
+                        navToMap = { navController.navigate("map") },
+                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") },
                         username = userState?.name,
-                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup")},
                         workoutRepository = workoutRepository
                     )
                 }
@@ -153,7 +154,7 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             }
 
             composable("settings") {
-                // --- UPDATE THIS COMPOSABLE CALL ---
+                //UPDATE THIS COMPOSABLE CALL
                 SettingsScreen(
                     viewModel = viewModel,
                     displayName = userState?.name ?: "",
@@ -164,6 +165,9 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
                         viewModel.setMusicConnected(isConnected)
                     }
                 )
+            }
+            composable("map") {
+                MapScreen(navController = navController)
             }
         }
     }

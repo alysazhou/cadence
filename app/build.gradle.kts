@@ -20,8 +20,8 @@ android {
 
     defaultConfig {
         applicationId = "com.cs407.cadence"
-        minSdk = 36
-        targetSdk = 36
+        minSdk = 26 //36
+        targetSdk = 34//36
         versionCode = 1
         versionName = "1.0"
 
@@ -30,6 +30,7 @@ android {
         manifestPlaceholders["spotifyClientId"] = localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""
         manifestPlaceholders["redirectHostName"] = "callback"
         manifestPlaceholders["redirectSchemeName"] = "com.cs407.cadence.auth"
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
     }
 
     buildTypes {
@@ -79,6 +80,10 @@ dependencies {
     implementation(libs.androidx.ink.brush)
     implementation(libs.play.services.auth)
     implementation(libs.androidx.compose.foundation)
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.maps.android:maps-compose:4.1.1")
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation(libs.androidx.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
