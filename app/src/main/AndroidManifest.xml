@@ -4,7 +4,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--    Below are location permissions required for Google Maps & -->
+    <!--    future GPS tracking during workout sessions.-->
+
+    <!--    Allows GPS-level accuracy-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!--    Allows WiFi/cell-tower accuracy.-->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <queries>
@@ -27,6 +32,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Cadence">
 
+<!--    Google Maps API key allows Maps SDK to authenticate requests & load map tiles -->
+<!--    Without this part the map would render a blank grid OR fully fail -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyA-oU2ACxtb8g_obKvMW6Bqwvdh5Zsswqo" />

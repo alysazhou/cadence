@@ -116,7 +116,10 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             composable("home") {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     HomeScreen(
+                        //I added navigation callback for the Map button,
+                        //which allows HomeScreen to trigger navigation to the new MapScreen
                         navToMap = { navController.navigate("map") },
+
                         onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") },
                         username = userState?.name,
                         workoutRepository = workoutRepository
@@ -166,6 +169,10 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
                     }
                 )
             }
+            //This is a new composable route for the Map screen that registers the
+            //"map" route w/ the NavHost (so the app can navigate to MapScreen)
+
+            //This route is triggered by the (temp) "Open Map" button on HomeScreen
             composable("map") {
                 MapScreen(navController = navController)
             }

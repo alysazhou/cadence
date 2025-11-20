@@ -67,10 +67,11 @@ import androidx.compose.foundation.verticalScroll
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    //Added the callback below so that HomeScreen can trigger navigation to the MapScreen
     navToMap: () -> Unit,
     onNavigateToWorkoutSetup: () -> Unit,
     username: String?,
-    workoutRepository: WorkoutRepository, // lets HomeScreen access the saved workout sessions
+    workoutRepository: WorkoutRepository,
     modifier: Modifier = Modifier,
     viewModel: HomeScreenViewModel = viewModel(
         factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
@@ -180,8 +181,10 @@ fun HomeScreen(
                     RecentActivityCard(
                         workoutSession = recentSession ?: placeholderData //use latest if available
                     )
+                    //Added a (temp) button for demo purposes.
+                    //Navigates to the MapScreen to show that Maps SDK is integrated and functional.
                     Button(
-                        onClick = { navToMap() },
+                        onClick = { navToMap() }, //Calls the callback, which triggers navController.navigate("map")
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Open Map", color = Color.Red)
