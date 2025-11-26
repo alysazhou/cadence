@@ -88,7 +88,10 @@ fun WorkoutScreen(
     val averagePace = if (distanceMiles > 0) durationMinutes / distanceMiles else 0.0
 
     LaunchedEffect(Unit) {
-        val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        val applicationInfo = context.packageManager.getApplicationInfo(
+            context.packageName,
+            PackageManager.GET_META_DATA
+        )
         val metadata = applicationInfo.metaData
         val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
         val redirectUri = "com.cs407.cadence.auth://callback"
@@ -183,13 +186,25 @@ fun WorkoutScreen(
                     MusicCard(isPaused = isPaused)
 
                     // TEMPO
-                    WorkoutStatCard(icon = Icons.Default.MusicNote, label = "Tempo", value = "$bpm beats/min")
+                    WorkoutStatCard(
+                        icon = Icons.Default.MusicNote,
+                        label = "Tempo",
+                        value = "$bpm beats/min"
+                    )
 
                     // DISTANCE
-                    WorkoutStatCard(icon = Icons.Default.Place, label = "Distance", value = "${String.format("%.1f", distanceMiles)} mi")
+                    WorkoutStatCard(
+                        icon = Icons.Default.Place,
+                        label = "Distance",
+                        value = "${String.format("%.1f", distanceMiles)} mi"
+                    )
 
                     // CALORIES
-                    WorkoutStatCard(icon = Icons.Default.LocalFireDepartment, label = "Calories", value = "$calories cal")
+                    WorkoutStatCard(
+                        icon = Icons.Default.LocalFireDepartment,
+                        label = "Calories",
+                        value = "$calories cal"
+                    )
 
                     Row(
                         horizontalArrangement = Arrangement.Center,
@@ -223,7 +238,7 @@ fun WorkoutScreen(
 
                         Spacer(modifier = Modifier.width(20.dp))
 
-                    // END WORKOUT BUTTON
+                        // END WORKOUT BUTTON
                         Button(
                             shape = RoundedCornerShape(100.dp),
                             onClick = {
@@ -256,138 +271,142 @@ fun WorkoutScreen(
         }
     }
 
-// helper to format stopwatch
-private fun formatTime(seconds: Long): String {
-    val mins = (seconds / 60) % 60
-    val secs = seconds % 60
-    return "%02d:%02d".format(mins, secs)
-}
+    // helper to format stopwatch
+    private fun formatTime(seconds: Long): String {
+        val mins = (seconds / 60) % 60
+        val secs = seconds % 60
+        return "%02d:%02d".format(mins, secs)
+    }
 
-@Composable
-fun MusicCard() {
-    var isPlaying by remember { mutableStateOf(true) }
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(top = 20.dp, bottom = 10.dp, start = 20.dp, end = 20.dp),
+    @Composable
+    fun MusicCard() {
+        var isPlaying by remember { mutableStateOf(true) }
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(top = 20.dp, bottom = 10.dp, start = 20.dp, end = 20.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.default_album_cover),
+                    contentDescription = "album art",
+                    modifier = Modifier
+                        .width(100.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    // SONG INFO
+                    Column(
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = "Song title",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = "Song artist",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+
+            // TODO: REPLACE WITH PROGRESS BAR
+            Box(
+                modifier = Modifier
+                    .padding(top = 20.dp, bottom = 10.dp)
+                    .height(3.dp)
+                    .background(MaterialTheme.colorScheme.onPrimary)
+                    .fillMaxWidth()
+            ) {}
+
+            // MUSIC CONTROLS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // REWIND BUTTON
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(
+                        imageVector = Icons.Default.FastRewind,
+                        contentDescription = "Rewind",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                // PLAY/PAUSE BUTTON
+                IconButton(onClick = { isPlaying = !isPlaying }) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                // FAST FORWARD BUTTON
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(
+                        imageVector = Icons.Default.FastForward,
+                        contentDescription = "Fast Forward",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun WorkoutStatCard(
+        icon: androidx.compose.ui.graphics.vector.ImageVector,
+        label: String,
+        value: String
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.default_album_cover),
-                contentDescription = "album art",
-                modifier = Modifier
-                    .width(100.dp)
-                    .clip(RoundedCornerShape(8.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(60.dp).align(Alignment.CenterEnd).alpha(0.15f),
+                tint = MaterialTheme.colorScheme.onPrimary
             )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                // SONG INFO
+            Row(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    horizontalAlignment = Alignment.Start
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
                 ) {
                     Text(
-                        text = "Song title",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
                     )
                     Text(
-                        text = "Song artist",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = value,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
         }
-
-        // TODO: REPLACE WITH PROGRESS BAR
-        Box(
-            modifier = Modifier
-                .padding(top = 20.dp, bottom = 10.dp)
-                .height(3.dp)
-                .background(MaterialTheme.colorScheme.onPrimary)
-                .fillMaxWidth()
-        ){}
-        
-        // MUSIC CONTROLS
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            // REWIND BUTTON
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(
-                    imageVector = Icons.Default.FastRewind,
-                    contentDescription = "Rewind",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
-            // PLAY/PAUSE BUTTON
-            IconButton(onClick = { isPlaying = !isPlaying }) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
-            // FAST FORWARD BUTTON
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(
-                    imageVector = Icons.Default.FastForward,
-                    contentDescription = "Fast Forward",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-        }
     }
 }
-
-@Composable
-fun WorkoutStatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(60.dp).align(Alignment.CenterEnd).alpha(0.15f),
-            tint = MaterialTheme.colorScheme.onPrimary
-        )
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-                )
-                Text(
-                    text = value,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    }
-}
-    }

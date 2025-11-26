@@ -88,6 +88,7 @@ dependencies {
     //Core Google Maps library -- needed in order for Google Map tiles can render on MapScreen
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation(libs.androidx.ui)
+    implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
