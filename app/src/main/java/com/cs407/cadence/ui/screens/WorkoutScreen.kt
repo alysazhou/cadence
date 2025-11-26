@@ -1,6 +1,7 @@
 package com.cs407.cadence.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import android.util.Log
+import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,16 +17,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -48,11 +50,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.cs407.cadence.data.models.WorkoutSession
+import com.cs407.cadence.data.network.SpotifyService
+import com.cs407.cadence.data.repository.WorkoutRepository
+import kotlinx.coroutines.delay
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
 import com.cs407.cadence.ui.viewModels.WorkoutViewModel
@@ -63,13 +69,43 @@ import kotlinx.coroutines.launch
 fun WorkoutScreen(
     modifier: Modifier = Modifier,
     onNavigateToHome: () -> Unit,
-    workoutViewModel: WorkoutViewModel = viewModel()
+    workoutViewModel: WorkoutViewModel = viewModel(),
+    workoutRepository: WorkoutRepository,
+    selectedGenre: String
 ) {
     val currentSession by workoutViewModel.currentSession.collectAsState()
     val scope = rememberCoroutineScope()
 
     var workoutLength by remember { mutableLongStateOf(0L) }
     var isPaused by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Calculate workout data based on the timer
+    val durationMinutes = ((workoutLength / 60).toInt()).coerceAtLeast(1)
+    val bpm = 180
+    val distanceMiles = 3.1 * (durationMinutes / 30.0)
+    val calories = (100 * (durationMinutes / 30.0)).toInt().coerceAtLeast(10)
+    val averagePace = if (distanceMiles > 0) durationMinutes / distanceMiles else 0.0
+
+    LaunchedEffect(Unit) {
+        val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        val metadata = applicationInfo.metaData
+        val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
+        val redirectUri = "com.cs407.cadence.auth://callback"
+
+        SpotifyService.buildConnectionParams(clientId, redirectUri)
+
+        SpotifyService.connect(
+            context = context,
+            onSuccess = {
+                Log.d("WorkoutScreen", "Connection successful. Playing recommended tracks.")
+                SpotifyService.playRecommendedTracks(selectedGenre, bpm)
+            },
+            onFailure = { throwable ->
+                println("connection failure: ${throwable.message}")
+            }
+        )
+    }
 
 
     LaunchedEffect(isPaused) {
@@ -80,13 +116,6 @@ fun WorkoutScreen(
             }
         }
     }
-
-
-    val durationMinutes = ((workoutLength / 60).toInt()).coerceAtLeast(1)
-    val bpm = 180
-    val distanceMiles = 3.1 * (durationMinutes / 30.0)
-    val calories = (100 * (durationMinutes / 30.0)).toInt().coerceAtLeast(10)
-    val averagePace = if (distanceMiles > 0) durationMinutes / distanceMiles else 0.0
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.primary,
@@ -131,7 +160,7 @@ fun WorkoutScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-
+                    // ACTIVITY TIMER
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -153,152 +182,81 @@ fun WorkoutScreen(
 
                     MusicCard(isPaused = isPaused)
 
+                    // TEMPO
+                    WorkoutStatCard(icon = Icons.Default.MusicNote, label = "Tempo", value = "$bpm beats/min")
 
-                    StatBox(
-                        icon = Icons.Default.MusicNote,
-                        label = "Tempo",
-                        value = bpm.toString(),
-                        unit = " beats/min"
-                    )
+                    // DISTANCE
+                    WorkoutStatCard(icon = Icons.Default.Place, label = "Distance", value = "${String.format("%.1f", distanceMiles)} mi")
 
+                    // CALORIES
+                    WorkoutStatCard(icon = Icons.Default.LocalFireDepartment, label = "Calories", value = "$calories cal")
 
-                    StatBox(
-                        icon = Icons.Default.Place,
-                        label = "Distance",
-                        value = String.format("%.2f", distanceMiles),
-                        unit = " miles"
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
 
-
-                    StatBox(
-                        icon = Icons.Default.LocalFireDepartment,
-                        label = "Calories",
-                        value = calories.toString(),
-                        unit = " calories"
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-
-                    OutlinedButton(
-                        shape = RoundedCornerShape(100.dp),
-                        onClick = {
-                            isPaused = !isPaused
-                            scope.launch {
-                                currentSession?.let { session ->
-                                    if (isPaused) {
-                                        workoutViewModel.pauseWorkout()
-                                    } else {
-                                        workoutViewModel.resumeWorkout()
+                        OutlinedButton(
+                            shape = RoundedCornerShape(100.dp),
+                            onClick = {
+                                isPaused = !isPaused
+                                scope.launch {
+                                    currentSession?.let { session ->
+                                        if (isPaused) {
+                                            workoutViewModel.pauseWorkout()
+                                        } else {
+                                            workoutViewModel.resumeWorkout()
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
-                    ) {
-                        Text(
-                            text = if (isPaused) "Resume" else "Pause",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
+                            },
+                            contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text(
+                                text = if (isPaused) "Resume" else "Pause",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                        Spacer(modifier = Modifier.width(20.dp))
 
+                    // END WORKOUT BUTTON
+                        Button(
+                            shape = RoundedCornerShape(100.dp),
+                            onClick = {
+                                scope.launch {
+                                    currentSession?.let { session ->
 
-
-                    Button(
-                        shape = RoundedCornerShape(100.dp),
-                        onClick = {
-                            scope.launch {
-                                currentSession?.let { session ->
-
-                                    workoutViewModel.endWorkout(
-                                        time = durationMinutes,
-                                        distance = distanceMiles,
-                                        averagePace = averagePace,
-                                        calories = calories,
-                                        bpm = bpm
-                                    )
+                                        workoutViewModel.endWorkout(
+                                            time = durationMinutes,
+                                            distance = distanceMiles,
+                                            averagePace = averagePace,
+                                            calories = calories,
+                                            bpm = bpm
+                                        )
+                                    }
+                                    onNavigateToHome()
                                 }
-                                onNavigateToHome()
-                            }
-                        },
-                        contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                    ) {
-                        Text(
-                            text = "Stop",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSecondary
-                        )
+                            },
+                            contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text(
+                                text = "Stop",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSecondary
+                            )
+                        }
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-fun StatBox(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    unit: String
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier
-                .size(60.dp)
-                .align(Alignment.CenterEnd)
-                .alpha(0.15f),
-            tint = MaterialTheme.colorScheme.onPrimary
-        )
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-                )
-                Row {
-                    Text(
-                        text = value,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-        }
-    }
-}
-
-
+// helper to format stopwatch
 private fun formatTime(seconds: Long): String {
     val mins = (seconds / 60) % 60
     val secs = seconds % 60
@@ -306,9 +264,8 @@ private fun formatTime(seconds: Long): String {
 }
 
 @Composable
-fun MusicCard(isPaused: Boolean = false) {
+fun MusicCard() {
     var isPlaying by remember { mutableStateOf(true) }
-
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -317,7 +274,8 @@ fun MusicCard(isPaused: Boolean = false) {
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
             Image(
                 painter = painterResource(id = R.drawable.default_album_cover),
@@ -329,17 +287,17 @@ fun MusicCard(isPaused: Boolean = false) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-
+                // SONG INFO
                 Column(
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
-                        text = "Song title", // TODO: Connect to Spotify API
+                        text = "Song title",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
-                        text = "Song artist", // TODO: Connect to Spotify API
+                        text = "Song artist",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -347,23 +305,23 @@ fun MusicCard(isPaused: Boolean = false) {
             }
         }
 
-
+        // TODO: REPLACE WITH PROGRESS BAR
         Box(
             modifier = Modifier
                 .padding(top = 20.dp, bottom = 10.dp)
                 .height(3.dp)
                 .background(MaterialTheme.colorScheme.onPrimary)
                 .fillMaxWidth()
-        ) {}
-
-
+        ){}
+        
+        // MUSIC CONTROLS
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            IconButton(onClick = { /* TODO: Connect to Spotify */ }) {
+        ){
+            // REWIND BUTTON
+            IconButton(onClick = { /* TODO */ }) {
                 Icon(
                     imageVector = Icons.Default.FastRewind,
                     contentDescription = "Rewind",
@@ -372,7 +330,7 @@ fun MusicCard(isPaused: Boolean = false) {
                 )
             }
 
-
+            // PLAY/PAUSE BUTTON
             IconButton(onClick = { isPlaying = !isPlaying }) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -382,8 +340,8 @@ fun MusicCard(isPaused: Boolean = false) {
                 )
             }
 
-
-            IconButton(onClick = { /* TODO: Connect to Spotify */ }) {
+            // FAST FORWARD BUTTON
+            IconButton(onClick = { /* TODO */ }) {
                 Icon(
                     imageVector = Icons.Default.FastForward,
                     contentDescription = "Fast Forward",
@@ -395,8 +353,41 @@ fun MusicCard(isPaused: Boolean = false) {
     }
 }
 
-@Preview
 @Composable
-fun MusicCardPreview() {
-    MusicCard()
+fun WorkoutStatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(60.dp).align(Alignment.CenterEnd).alpha(0.15f),
+            tint = MaterialTheme.colorScheme.onPrimary
+        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+                )
+                Text(
+                    text = value,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    }
 }
+    }

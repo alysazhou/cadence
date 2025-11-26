@@ -1,5 +1,13 @@
 package com.cs407.cadence.ui.screens
 
+import com.cs407.cadence.data.network.SpotifyService
+//import com.spotify.sdk.android.auth.AuthorizationClient
+//import com.spotify.sdk.android.auth.AuthorizationRequest
+//import com.spotify.sdk.android.auth.AuthorizationResponse
+import android.app.Activity
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,23 +20,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.UserViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun SettingsScreen(
@@ -36,6 +44,8 @@ fun SettingsScreen(
     displayName: String,
     onDisplayNameChange: (String) -> Unit,
     onClearLog: () -> Unit,
+    isMusicConnected: Boolean,
+    onMusicAuth: (Boolean) -> Unit
 ) {
     var isEditingUsername by remember { mutableStateOf(false) }
     var tempName by remember(displayName) { mutableStateOf(displayName) }
@@ -43,12 +53,115 @@ fun SettingsScreen(
     var autoStopEnabled by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMusicAuthDialog by remember { mutableStateOf(false) }
+
+//    if (showMusicAuthDialog) {
+//        val context = LocalContext.current
+//        val applicationInfo = context.packageManager.getApplicationInfo(
+//            context.packageName,
+//            PackageManager.GET_META_DATA
+//        )
+//        val metadata = applicationInfo.metaData
+//        val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
+//
+//        val scheme = metadata.getString("com.cs407.cadence.auth") ?: "com.cs407.cadence.auth"
+//        val host = metadata.getString("callback") ?: "callback"
+//        val redirectUri = "$scheme://$host"
+//
+//        val spotifyAuthLauncher = rememberLauncherForActivityResult(
+//            contract = ActivityResultContracts.StartActivityForResult()
+//        ) { result ->
+//            val response = AuthorizationClient.getResponse(
+//                result.resultCode,
+//                result.data
+//            )
+//            when (response.type) {
+//                AuthorizationResponse.Type.CODE -> {
+//                    onMusicAuth(true)
+//                    showMusicAuthDialog = false
+//                }
+//
+//                else -> {
+//                    println("music auth failed")
+//                    showMusicAuthDialog = false
+//                }
+//            }
+//        }
+//
+//
+//        Dialog(
+//            onDismissRequest = { showMusicAuthDialog = false },
+//        ) {
+//            Card(
+//                shape = RoundedCornerShape(8.dp),
+//                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+//            ) {
+//                Column(
+//                    modifier = Modifier.padding(30.dp),
+//                    horizontalAlignment = Alignment.CenterHorizontally,
+//                    verticalArrangement = Arrangement.spacedBy(10.dp)
+//                ) {
+//                    Text(
+//                        text = "Connect music player",
+//                        style = MaterialTheme.typography.titleMedium,
+//                        color = MaterialTheme.colorScheme.onPrimary
+//                    )
+//                    Text(
+//                        text = "To use Cadence, you'll need to connect a third-party music player account.",
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        color = MaterialTheme.colorScheme.onPrimary,
+//                        textAlign = TextAlign.Center
+//
+//                    )
+//                    Spacer(modifier = Modifier.height(10.dp))
+//                    Column(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        verticalArrangement = Arrangement.spacedBy(10.dp),
+//                        horizontalAlignment = Alignment.CenterHorizontally
+//                    ) {
+//                        // CONNECT TO SPOTIFY
+//                        Button(
+//                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+//                            onClick = {
+//                                val request = AuthorizationRequest.Builder(
+//                                    clientId, AuthorizationResponse.Type.CODE, redirectUri
+//                                ).setScopes(arrayOf("user-read-private", "user-top-read")).build()
+//
+//                                val intent =
+//                                    AuthorizationClient.createLoginActivityIntent(context as Activity, request)
+//                                spotifyAuthLauncher.launch(intent)
+//                            },
+//                            shape = RoundedCornerShape(100.dp),
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = Color(0xFF1DB954),
+//                                contentColor = Color.White
+//                            )
+//                        ) {
+//                            Text(
+//                                text = "Spotify",
+//                                style = MaterialTheme.typography.titleSmall)
+//                        }
+//
+//                        // CANCEL
+//                        OutlinedButton(
+//                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+//                            onClick = { showMusicAuthDialog = false},
+//                            shape = RoundedCornerShape(100.dp),
+//                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+//                        ) {
+//                            Text(
+//                                style = MaterialTheme.typography.titleSmall,
+//                                text = "Cancel",
+//                                color = MaterialTheme.colorScheme.secondary)
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     if (showSignOutDialog) {
         ConfirmationDialog(
-            title = "Sign out",
-            message = "You're about to be signed out of your account.",
-            confirmButtonText = "Confirm",
             onConfirm = {
                 viewModel.logout()
                 showSignOutDialog = false
@@ -101,10 +214,10 @@ fun SettingsScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // DISPLAY NAME SECTION
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // CHANGE DISPLAY NAME
                 Text(
                     "Display name",
                     style = MaterialTheme.typography.labelMedium,
@@ -120,9 +233,15 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val maxChar = 12
                     BasicTextField(
+                        singleLine = true,
                         value = tempName,
-                        onValueChange = { tempName = it },
+                        onValueChange = {
+                            if (it.length <= maxChar) {
+                                tempName = it
+                            }
+                        },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onPrimary
                         ),
@@ -147,6 +266,7 @@ fun SettingsScreen(
                 }
             }
 
+            // MUSIC SECTION
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -155,7 +275,60 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
+                val context = LocalContext.current
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable(enabled = !isMusicConnected) {
+                            val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                            val metadata = applicationInfo.metaData
+                            val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
+                            val redirectUri = "com.cs407.cadence.auth://callback"
 
+                            SpotifyService.buildConnectionParams(clientId, redirectUri)
+
+                            SpotifyService.connect(
+                                context = context,
+                                    onSuccess = {
+                                    onMusicAuth(true)
+                                },
+                                onFailure = {
+                                    onMusicAuth(false)
+                                }
+                            )
+                        }
+                        .padding(horizontal = 20.dp, vertical = 15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ){
+                    if (isMusicConnected) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.spotify_icon_green), // Make sure you have this drawable
+//                                contentDescription = "Spotify Logo",
+//                                modifier = Modifier.size(24.dp),
+//                                tint = Color.Unspecified
+//                            )
+                            Text(
+                                "Connected to Spotify",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Text(
+                            "Connect music player",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // TOGGLES SECTION (MOVED INSIDE MUSIC COLUMN)
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -163,6 +336,7 @@ fun SettingsScreen(
                         .padding(horizontal = 10.dp, vertical = 10.dp)
                         .padding(start = 10.dp, end = 5.dp)
                 ) {
+
                     // AUTO-SKIP
                     Row(
                         modifier = Modifier
@@ -295,16 +469,13 @@ fun SettingsScreen(
                     }
                 }
             }
-
         }
     }
 }
 
+
 @Composable
 private fun ConfirmationDialog(
-    title: String,
-    message: String,
-    confirmButtonText: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -319,12 +490,12 @@ private fun ConfirmationDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = title,
+                    text = "Sign out",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
-                    text = message,
+                    text = "You're about to be signed out of your account.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center
@@ -360,7 +531,7 @@ private fun ConfirmationDialog(
                         )
                     ) {
                         Text(
-                            text = confirmButtonText,
+                            text = "Confirm",
                             style = MaterialTheme.typography.titleSmall)
                     }
                 }

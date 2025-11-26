@@ -1,5 +1,7 @@
 package com.cs407.cadence.ui.screens
 
+import com.cs407.cadence.data.network.SpotifyService
+import android.content.pm.PackageManager
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,197 +33,243 @@ import com.cs407.cadence.data.ActivityRepository
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModel
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModelFactory
 import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+import com.cs407.cadence.ui.viewModels.UserViewModel
 
 @Composable
 fun WorkoutSetupScreen(
     workoutViewModel: WorkoutViewModel,
-    viewModel: HomeScreenViewModel = viewModel(
-        factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
-    ),
-    onNavigateToWorkout: () -> Unit,
-    onNavigateBack: () -> Unit
+    viewModel: HomeScreenViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
+    onNavigateToWorkout: (String) -> Unit,
+    onNavigateBack: () -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val homeScreenViewModel: HomeScreenViewModel = viewModel(
+        factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+    val uiState by homeScreenViewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    // DIALOGS
 
     if (uiState.showActivitySelector) {
         ActivitySelectionDialog(
             activities = ActivityRepository.getAllActivities(),
             currentSelection = uiState.selectedActivity,
-            onDismiss = { viewModel.onActivitySelectorDismiss() },
-            onSelect = { activityName -> viewModel.onActivitySelected(activityName) }
+            onDismiss = { homeScreenViewModel.onActivitySelectorDismiss() },
+            onSelect = { activityName -> homeScreenViewModel.onActivitySelected(activityName) }
         )
     }
 
 
     if (uiState.showGenreSelector) {
         val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
+        val genreOptions = activity?.compatibleGenres ?: emptyList()
+
         GenreSelectionDialog(
-            options = activity?.compatibleGenres ?: emptyList(),
+            options = genreOptions,
+            onDismiss = { homeScreenViewModel.onGenreSelectorDismiss() },
             currentSelection = uiState.selectedGenre,
-            onDismiss = { viewModel.onGenreSelectorDismiss() },
-            onSelect = { genre -> viewModel.onGenreSelected(genre) }
+            onSelect = { genre -> homeScreenViewModel.onGenreSelected(genre) }
         )
     }
 
-    Scaffold(
-        topBar = {
-            Box(
-                contentAlignment = Alignment.Center,
+    Scaffold(topBar = {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
+                    .padding(horizontal = 10.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { onNavigateBack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+
+                IconButton(onClick = { onNavigateBack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Navigate back to Home Screen",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-
-                Text(
-                    style = MaterialTheme.typography.displayLarge,
-                    text = "WORKOUT",
-                )
             }
+            Text(
+                style = MaterialTheme.typography.displayLarge,
+                text = "WORKOUT",
+            )
         }
-    ) { innerPadding ->
-
+    }) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(40.dp)
         ) {
+//            Column {
+//                Text(
+//                    "Customize your activity",
+//                    style = MaterialTheme.typography.titleMedium,
+//                    color = MaterialTheme.colorScheme.onPrimary
+//                )
+//            }
 
 
-            Button(
+            // ACTIVITY & GENRE BUTTONS
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { viewModel.onActivityButtonClick() },
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 20.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsRun,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .align(Alignment.CenterEnd)
-                            .offset(x = -30.dp)
-                            .alpha(0.15f),
-                        tint = MaterialTheme.colorScheme.onSecondary
+                // ACTIVITY BUTTON
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { homeScreenViewModel.onActivityButtonClick() },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     )
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(
-                                text = "Activity",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
-                            )
-                            Text(
-                                text = uiState.selectedActivity,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary
-                            )
-                        }
-
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Autorenew,
-                            contentDescription = "Change Activity",
-                            modifier = Modifier.align(Alignment.CenterVertically),
+                            imageVector = Icons.Default.DirectionsRun,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .align(Alignment.CenterEnd)
+                                .offset(x = -30.dp)
+                                .alpha(0.15f),
                             tint = MaterialTheme.colorScheme.onSecondary
                         )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Text(
+                                    text = "Activity",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f),
+
+                                    )
+                                Text(
+                                    text = uiState.selectedActivity,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.Autorenew,
+                                contentDescription = "Change Activity",
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .align(Alignment.CenterVertically),
+                                tint = MaterialTheme.colorScheme.onSecondary
+                            )
+                        }
+                    }
+                }
+
+                // GENRE BUTTON
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { homeScreenViewModel.onGenreButtonClick() },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .align(Alignment.CenterEnd)
+                                .offset(x = -30.dp)
+                                .alpha(0.15f),
+                            tint = MaterialTheme.colorScheme.onSecondary
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                Text(
+                                    text = "Genre",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
+                                )
+                                Text(
+                                    text = uiState.selectedGenre,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSecondary
+
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Autorenew,
+                                contentDescription = "Change Genre",
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .align(Alignment.CenterVertically),
+                                tint = MaterialTheme.colorScheme.onSecondary
+                            )
+                        }
                     }
                 }
             }
 
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { viewModel.onGenreButtonClick() },
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .align(Alignment.CenterEnd)
-                            .offset(x = -30.dp)
-                            .alpha(0.15f),
-                        tint = MaterialTheme.colorScheme.onSecondary
-                    )
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Text(
-                                text = "Genre",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
-                            )
-                            Text(
-                                text = uiState.selectedGenre,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.Autorenew,
-                            contentDescription = "Change Genre",
-                            modifier = Modifier.align(Alignment.CenterVertically),
-                            tint = MaterialTheme.colorScheme.onSecondary
-                        )
-                    }
-                }
-            }
-
-
+            // START WORKOUT BUTTON
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     workoutViewModel.startWorkout()
                     onNavigateToWorkout()
+                },
+                onClick = {
+                    val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                    val metadata = applicationInfo.metaData
+                    val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
+                    val redirectUri = "com.cs407.cadence.auth://callback"
+                    SpotifyService.buildConnectionParams(clientId, redirectUri)
+
+                    SpotifyService.connect(
+                        context = context,
+                        onSuccess = {
+                            onNavigateToWorkout(uiState.selectedGenre)
+                        },
+                        onFailure = { throwable ->
+                            println("Failed to connect to Spotify: ${throwable.message}")
+                        }
+                    )
                 },
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
@@ -229,7 +277,9 @@ fun WorkoutSetupScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(100.dp))
-                        .background(MaterialTheme.colorScheme.tertiary)
+                        .background(
+                            MaterialTheme.colorScheme.tertiary
+                        )
                         .padding(vertical = 15.dp, horizontal = 30.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -243,7 +293,6 @@ fun WorkoutSetupScreen(
         }
     }
 }
-
 
 
 @Composable
@@ -262,20 +311,24 @@ fun ActivitySelectionDialog(
         Card(
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp)
         ) {
             Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.onSecondary)
-                    .padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(10.dp)
             ) {
                 Text(
                     text = "Select activity",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(10.dp)
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .padding(bottom = 5.dp)
                 )
 
                 LazyColumn {
@@ -283,19 +336,21 @@ fun ActivitySelectionDialog(
                         val isSelected = activity.name == tempSelection
 
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                                 )
                                 .fillMaxWidth()
-                                .clickable { tempSelection = activity.name }
-                                .padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable {
+                                    tempSelection = activity.name
+                                }
+                                .padding(20.dp)
                         ) {
                             Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(5.dp)
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Text(
                                     text = activity.name,
@@ -308,32 +363,29 @@ fun ActivitySelectionDialog(
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
                                 )
                             }
-
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.DirectionsRun,
-                                    contentDescription = null,
+                                    contentDescription = "Selected Activity",
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(20.dp))
-
                 Button(
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
                         onDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    ),
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = "Done",
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
@@ -341,8 +393,6 @@ fun ActivitySelectionDialog(
         }
     }
 }
-
-
 
 @Composable
 fun GenreSelectionDialog(
@@ -360,20 +410,24 @@ fun GenreSelectionDialog(
         Card(
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp)
         ) {
             Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.onSecondary)
-                    .padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(10.dp)
             ) {
                 Text(
                     text = "Select genre",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(10.dp)
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .padding(bottom = 5.dp)
                 )
 
                 LazyColumn {
@@ -381,15 +435,17 @@ fun GenreSelectionDialog(
                         val isSelected = option == tempSelection
 
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                                 )
                                 .fillMaxWidth()
-                                .clickable { tempSelection = option }
-                                .padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable {
+                                    tempSelection = option
+                                }
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         ) {
                             Text(
                                 text = option,
@@ -397,32 +453,29 @@ fun GenreSelectionDialog(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.weight(1f)
                             )
-
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
+                                    contentDescription = "Selected Genre",
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(20.dp))
-
                 Button(
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
                         onDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    ),
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = "Done",
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }

@@ -27,17 +27,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-
-
+import androidx.navigation.navArgument
+import com.cs407.cadence.ui.navigation.BottomNav
+import com.cs407.cadence.ui.screens.*
+import com.cs407.cadence.ui.theme.CadenceTheme
+import com.cs407.cadence.data.repository.WorkoutRepository
 
 class MainActivity : ComponentActivity() {
 
     private val userViewModel: UserViewModel by viewModels()
     private val workoutViewModel: WorkoutViewModel by viewModels()
+    private val workoutRepository = WorkoutRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,9 +113,15 @@ fun CadenceApp(
                     color = MaterialTheme.colorScheme.background
                 ) {
                     HomeScreen(
-                        username = userState?.name,
+                        //I added navigation callback for the Map button,
+                        //which allows HomeScreen to trigger navigation to the new MapScreen
+                        navToMap = { navController.navigate("map") },
+
                         onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") },
-                        workoutViewModel = workoutViewModel
+                        username = userState?.name,
+                        workoutViewModel = workoutViewModel,
+                        workoutRepository = TODO(),
+                        modifier = TODO()
                     )
                 }
             }
@@ -118,7 +129,9 @@ fun CadenceApp(
             composable("workoutSetup") {
                 WorkoutSetupScreen(
                     workoutViewModel = workoutViewModel,
-                    onNavigateToWorkout = { navController.navigate("workout") },
+                    onNavigateToWorkout = { selectedGenre ->
+                        navController.navigate("workout/$selectedGenre")
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -126,7 +139,9 @@ fun CadenceApp(
             composable("workout") {
                 WorkoutScreen(
                     onNavigateToHome = { navController.navigate("home") },
-                    workoutViewModel = workoutViewModel
+                    workoutViewModel = workoutViewModel,
+                    workoutRepository = workoutRepository,
+                    selectedGenre = genre
                 )
             }
 
@@ -141,8 +156,20 @@ fun CadenceApp(
                     onDisplayNameChange = { newName: String ->
                         userViewModel.setDisplayName(newName)
                     },
-                    onClearLog = { workoutViewModel.clearAllHistory() }
+                    onClearLog = { workoutViewModel.clearAllHistory() },
+                    isMusicConnected = isMusicConnected,
+                    onMusicAuth = { isConnected ->
+                        viewModel.setMusicConnected(isConnected)
+                    }
                 )
+            }
+
+            //This is a new composable route for the Map screen that registers the
+            //"map" route w/ the NavHost (so the app can navigate to MapScreen)
+
+            //This route is triggered by the (temp) "Open Map" button on HomeScreen
+            composable("map") {
+                MapScreen(navController = navController)
             }
         }
     }

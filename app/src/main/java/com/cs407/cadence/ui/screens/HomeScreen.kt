@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -61,15 +63,21 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import com.cs407.cadence.data.repository.WorkoutRepository
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier,
+    //Added the callback below so that HomeScreen can trigger navigation to the MapScreen
+    navToMap: () -> Unit,
     onNavigateToWorkoutSetup: () -> Unit,
     username: String?,
-    workoutViewModel: WorkoutViewModel = viewModel()
+    workoutRepository: WorkoutRepository,
+    modifier: Modifier = Modifier,
+    workoutViewModel: WorkoutViewModel = viewModel(),
 ) {
 
     val lastSession by workoutViewModel.lastSession.collectAsState()
@@ -114,8 +122,9 @@ fun HomeScreen(
             Column(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-
-                Column {
+                // HEADER
+                Column(
+                ) {
                     Text(
                         text = "Welcome back,",
                         style = MaterialTheme.typography.titleLarge,
@@ -137,7 +146,8 @@ fun HomeScreen(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
 
                     Row(

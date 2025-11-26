@@ -1,5 +1,6 @@
 package com.cs407.cadence.ui.viewModels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import checkEmail
@@ -45,6 +46,19 @@ class UserViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // MUSIC AUTHORIZATION
+    private val _isMusicConnected = MutableStateFlow(false)
+    val isMusicConnected = _isMusicConnected.asStateFlow()
+
+    fun setMusicConnected(isConnected: Boolean) {
+        _isMusicConnected.value = isConnected
+    }
+
+    fun clearErrors() {
+        _emailError.value = null
+        _passwordError.value = null
+        _reauthError.value = null // Also clear re-auth error
+    }
     private val auth: FirebaseAuth = Firebase.auth
 
     init {
@@ -68,12 +82,6 @@ class UserViewModel : ViewModel() {
                 _settings.value = UserSettings()
             }
         }
-    }
-
-    fun clearErrors() {
-        _emailError.value = null
-        _passwordError.value = null
-        _reauthError.value = null
     }
 
     fun signIn(email: String, password: String) {

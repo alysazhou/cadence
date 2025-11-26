@@ -1,14 +1,12 @@
 package com.cs407.cadence.data.repository
 
+import android.content.Context
 import com.cs407.cadence.data.models.User
 import com.cs407.cadence.data.models.UserSettings
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-/**
- * Handles CRUD operations for user data and settings
- */
 class UserRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()

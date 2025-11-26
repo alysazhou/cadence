@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    package="com.cs407.cadence">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--    Below are location permissions required for Google Maps & -->
+    <!--    future GPS tracking during workout sessions.-->
+
+    <!--    Allows GPS-level accuracy-->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!--    Allows WiFi/cell-tower accuracy.-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+        <package android:name="com.spotify.music" />
+        <package android:name="com.spotify.music.debug" />
+        <package android:name="com.spotify.music.canary" />
+        <package android:name="com.spotify.music.partners" />
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -11,17 +31,41 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Cadence">
+
+<!--    Google Maps API key allows Maps SDK to authenticate requests & load map tiles -->
+<!--    Without this part the map would render a blank grid OR fully fail -->
+<!--    Without this part the map would render a blank grid OR fully fail -->
+<!--    real key is in local.properties file -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}"  />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Cadence">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="${redirectHostName}"
+                    android:scheme="${redirectSchemeName}" />
+            </intent-filter>
+
         </activity>
+
+        <meta-data
+            android:name="com.cs407.cadence.SPOTIFY_CLIENT_ID"
+            android:value="${spotifyClientId}" />
     </application>
 
 </manifest>
