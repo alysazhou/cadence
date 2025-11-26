@@ -1,4 +1,4 @@
-//package com.cs407.cadence.ui.screens
+package com.cs407.cadence.ui.screens
 //
 //import android.app.Activity
 //import android.content.pm.PackageManager
