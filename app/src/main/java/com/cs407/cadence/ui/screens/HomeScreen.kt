@@ -31,12 +31,15 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,43 +54,37 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
 import com.cs407.cadence.data.models.WorkoutSession
-import com.cs407.cadence.ui.viewModels.HomeScreenViewModel
-import com.cs407.cadence.ui.viewModels.HomeScreenViewModelFactory
+import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+import com.google.firebase.auth.FirebaseAuth
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import com.cs407.cadence.data.repository.WorkoutRepository
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeScreenViewModel = viewModel(
-        factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
-    ),
     onNavigateToWorkoutSetup: () -> Unit,
     username: String?,
-    workoutRepository: WorkoutRepository // lets HomeScreen access the saved workout sessions
+    workoutViewModel: WorkoutViewModel = viewModel()
 ) {
-    val placeholderData = WorkoutSession(
-        id = 1,
-        date = "05/20/2004",
-        bpm = 180,
-        distance = 3.1,
-        time = 30,
-        calories = 100,
-        activity = "Running"
-    )
 
-    val recentSession = workoutRepository
-        .getAllSessions()
-        .lastOrNull() // get the latest workout, or null if no sessions saved
+    val lastSession by workoutViewModel.lastSession.collectAsState()
+    val isLoading by workoutViewModel.isLoading.collectAsState()
+
+
+    LaunchedEffect(Unit) {
+        workoutViewModel.loadLastSession()
+    }
+
     val displayName = username ?: "User"
     val days = (-2..2).map { LocalDate.now().plusDays(it.toLong()) }
 
-    // hardcoded values
+    // TODO: Calculate workout streak from Firebase data
+    // For now, hardcoded values
     val workoutDates = listOf(
         LocalDate.now().minusDays(2),
         LocalDate.now()
@@ -117,16 +114,15 @@ fun HomeScreen(
             Column(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                // HEADER
-                Column(
-                ) {
+
+                Column {
                     Text(
                         text = "Welcome back,",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text =  displayName,
+                        text = displayName,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -134,7 +130,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text =  "Let's keep a streak going!",
+                        text = "Let's keep a streak going!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                     )
@@ -143,7 +139,7 @@ fun HomeScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // WORKOUT CALENDAR
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -159,21 +155,66 @@ fun HomeScreen(
                         }
                     }
 
-                    // START BUTTON (now navigates to setup screen)
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
-                            .clickable { onNavigateToWorkoutSetup() } // Updated navigation
+                            .clickable { onNavigateToWorkoutSetup() }
                     ) {
                         StartButton()
                     }
 
-                    // LAST WORKOUT
-                    RecentActivityCard(
-                        workoutSession = recentSession ?: placeholderData //use latest if available
-                    )
+
+                    if (isLoading) {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (lastSession != null) {
+
+                        RecentActivityCard(
+                            workoutSession = lastSession!!
+                        )
+                    } else {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
+                                    contentDescription = "No workouts",
+                                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Text(
+                                    text = "No workouts yet",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+                                )
+                                Text(
+                                    text = "Start your first run!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -195,9 +236,7 @@ fun DayCard(modifier: Modifier = Modifier, date: LocalDate, hasWorkout: Boolean,
         MaterialTheme.colorScheme.onSurface
     }
 
-
-    val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT,
-        Locale.getDefault())
+    val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
     val dayOfMonth = date.dayOfMonth.toString()
 
     Card(
@@ -315,13 +354,17 @@ fun RecentActivityCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
+
+
                 val formattedDate = try {
-                    val inputFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-                    val outputFormatter = DateTimeFormatter.ofPattern("E, MMM d")
-                    LocalDate.parse(workoutSession.date, inputFormatter).format(outputFormatter)
+                    val date = workoutSession.endTime?.toDate()
+                        ?: workoutSession.startTime.toDate()
+                    val formatter = SimpleDateFormat("E, MMM d", Locale.getDefault())
+                    formatter.format(date)
                 } catch (e: Exception) {
-                    workoutSession.date
+                    "Unknown"
                 }
+
                 Text(
                     text = formattedDate,
                     fontWeight = FontWeight.Bold,
@@ -343,7 +386,7 @@ fun RecentActivityCard(
                 )
                 Stat(
                     icon = Icons.Default.Place,
-                    value = String.format("%.1f", workoutSession.distance), //rounded distance to one decimal point
+                    value = String.format("%.1f", workoutSession.distance),
                     label = "mi",
                 )
                 Stat(

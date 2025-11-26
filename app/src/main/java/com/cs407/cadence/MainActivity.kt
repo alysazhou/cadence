@@ -1,5 +1,17 @@
 package com.cs407.cadence
 
+import com.cs407.cadence.ui.screens.LoginScreen
+import com.cs407.cadence.ui.screens.SetNameScreen
+import com.cs407.cadence.ui.screens.HomeScreen
+import com.cs407.cadence.ui.screens.WorkoutSetupScreen
+import com.cs407.cadence.ui.screens.WorkoutScreen
+import com.cs407.cadence.ui.screens.LogScreen
+import com.cs407.cadence.ui.screens.SettingsScreen
+import com.cs407.cadence.ui.navigation.BottomNav
+import com.cs407.cadence.ui.theme.CadenceTheme
+import com.cs407.cadence.ui.viewModels.UserViewModel
+import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,44 +31,42 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.cs407.cadence.ui.navigation.BottomNav
-import com.cs407.cadence.ui.screens.*
-import com.cs407.cadence.ui.theme.CadenceTheme
-import com.cs407.cadence.ui.viewModels.UserViewModel
-import com.cs407.cadence.data.repository.WorkoutRepository
+
+
 
 class MainActivity : ComponentActivity() {
+
     private val userViewModel: UserViewModel by viewModels()
-    private val workoutRepository = WorkoutRepository() //added so that distance/time are consistent across screens
+    private val workoutViewModel: WorkoutViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             CadenceTheme {
-                //CadenceApp(userViewModel)
-                CadenceApp(userViewModel, workoutRepository) //pass repository into CadenceApp
+                CadenceApp(userViewModel, workoutViewModel)
             }
         }
     }
 }
+
 @Composable
-fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) {
-    val userState by viewModel.userState.collectAsStateWithLifecycle()
+fun CadenceApp(
+    userViewModel: UserViewModel,
+    workoutViewModel: WorkoutViewModel
+) {
+    val userState by userViewModel.userState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
 
+
     LaunchedEffect(userState?.uid) {
-        val route = when {
-            // not logged in (uid is null)
+        val destination = when {
             userState == null -> "login"
-
-            // logged in with no display name
             userState?.name.isNullOrEmpty() -> "setName"
-
-            // logged in with display name
             else -> "home"
         }
 
-        navController.navigate(route) {
+        navController.navigate(destination) {
             popUpTo(navController.graph.startDestinationId) { inclusive = true }
         }
     }
@@ -67,8 +77,8 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            if (currentRoute == "home" || currentRoute == "log" || currentRoute == "settings") {
-                BottomNav(navController = navController)
+            if (currentRoute in listOf("home", "log", "settings")) {
+                BottomNav(navController)
             }
         }
     ) { innerPadding ->
@@ -78,30 +88,36 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") {
-                LoginScreen(viewModel = viewModel)
+                LoginScreen(viewModel = userViewModel)
             }
 
             composable("setName") {
                 SetNameScreen(
-                    viewModel = viewModel,
+                    viewModel = userViewModel,
                     onNavigateToHome = {
-                        navController.navigate("home") { popUpTo("setName") { inclusive = true } }
+                        navController.navigate("home") {
+                            popUpTo("setName") { inclusive = true }
+                        }
                     }
                 )
             }
 
             composable("home") {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     HomeScreen(
                         username = userState?.name,
-                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup")},
-                        workoutRepository = workoutRepository
+                        onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") },
+                        workoutViewModel = workoutViewModel
                     )
                 }
             }
 
             composable("workoutSetup") {
                 WorkoutSetupScreen(
+                    workoutViewModel = workoutViewModel,
                     onNavigateToWorkout = { navController.navigate("workout") },
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -110,20 +126,22 @@ fun CadenceApp(viewModel: UserViewModel, workoutRepository: WorkoutRepository ) 
             composable("workout") {
                 WorkoutScreen(
                     onNavigateToHome = { navController.navigate("home") },
-                    workoutRepository = workoutRepository
+                    workoutViewModel = workoutViewModel
                 )
             }
 
             composable("log") {
-                LogScreen()
+                LogScreen(workoutViewModel = workoutViewModel)
             }
 
             composable("settings") {
                 SettingsScreen(
-                    viewModel = viewModel,
+                    viewModel = userViewModel,
                     displayName = userState?.name ?: "",
-                    onDisplayNameChange = { newName -> viewModel.setDisplayName(newName) },
-                    onClearLog = { /* TODO */ },
+                    onDisplayNameChange = { newName: String ->
+                        userViewModel.setDisplayName(newName)
+                    },
+                    onClearLog = { workoutViewModel.clearAllHistory() }
                 )
             }
         }

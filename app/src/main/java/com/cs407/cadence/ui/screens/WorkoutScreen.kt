@@ -9,21 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -32,7 +26,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -43,9 +36,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,44 +53,40 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
-import com.cs407.cadence.ui.components.LogCard
-import com.cs407.cadence.data.models.WorkoutSession
+import com.cs407.cadence.ui.viewModels.WorkoutViewModel
 import kotlinx.coroutines.delay
-import com.cs407.cadence.data.repository.WorkoutRepository
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
+import kotlinx.coroutines.launch
 
 @Composable
 fun WorkoutScreen(
     modifier: Modifier = Modifier,
     onNavigateToHome: () -> Unit,
-    workoutRepository: WorkoutRepository
+    workoutViewModel: WorkoutViewModel = viewModel()
 ) {
-    val placeholderData = WorkoutSession(
-        id = 1,
-        date = "00/00/0000",
-        bpm = 180,
-        distance = 3.1,
-        time = 30,
-        calories = 100,
-        activity = "Running"
-    )
+    val currentSession by workoutViewModel.currentSession.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    var workoutLength by remember { mutableStateOf(0L) }
-    val durationMinutes = ((workoutLength / 60).toInt()).coerceAtLeast(1) //convert seconds to minutes & ensure min is 1
-    val bpm = 180 // hardcoded for neowwww
-    val distanceMiles = 3.1 * (durationMinutes / 30.0) //distance is scaled based on length of workout
-    val calories = (100 * (durationMinutes / 30.0)).toInt().coerceAtLeast(10) //calories are scaled based on length of workout
+    var workoutLength by remember { mutableLongStateOf(0L) }
+    var isPaused by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = true) {
-        while (true) {
-            delay(1000L)
-            workoutLength++
+
+    LaunchedEffect(isPaused) {
+        if (!isPaused) {
+            while (true) {
+                delay(1000L)
+                workoutLength++
+            }
         }
     }
+
+
+    val durationMinutes = ((workoutLength / 60).toInt()).coerceAtLeast(1)
+    val bpm = 180
+    val distanceMiles = 3.1 * (durationMinutes / 30.0)
+    val calories = (100 * (durationMinutes / 30.0)).toInt().coerceAtLeast(10)
+    val averagePace = if (distanceMiles > 0) durationMinutes / distanceMiles else 0.0
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.primary,
@@ -132,7 +124,6 @@ fun WorkoutScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 40.dp),
-
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(
@@ -140,7 +131,7 @@ fun WorkoutScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // ACTIVITY TIMER
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -158,204 +149,85 @@ fun WorkoutScreen(
                         )
                     }
 
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    MusicCard(isPaused = isPaused)
+
+
+                    StatBox(
+                        icon = Icons.Default.MusicNote,
+                        label = "Tempo",
+                        value = bpm.toString(),
+                        unit = " beats/min"
                     )
 
-                    MusicCard()
 
-                    // TEMPO
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .align(Alignment.CenterEnd)
-                                .alpha(0.15f),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                    StatBox(
+                        icon = Icons.Default.Place,
+                        label = "Distance",
+                        value = String.format("%.2f", distanceMiles),
+                        unit = " miles"
+                    )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.Start,
-                            ) {
-                                Text(
-                                    text = "Tempo",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
 
-                                    )
-                                Row() {
-                                    Text(
-                                        text = bpm.toString(),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Text(
-                                        text = " beats/min",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-
-                            }
-                        }
-                    }
-
-                    // DISTANCE
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .align(Alignment.CenterEnd)
-                                .alpha(0.15f),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.Start,
-                            ) {
-                                Text(
-                                    text = "Distance",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-
-                                    )
-                                Row() {
-                                    Text(
-                                        text = String.format("%.2f", distanceMiles), //round distance to 2 decimals for workout screen
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Text(
-                                        text = " miles",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // CALORIES
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalFireDepartment,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .align(Alignment.CenterEnd)
-                                .alpha(0.15f),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.Start,
-                            ) {
-                                Text(
-                                    text = "Calories",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-
-                                    )
-                                Row() {
-                                    Text(
-                                        text = calories.toString(),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Text(
-                                        text = " calories",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    StatBox(
+                        icon = Icons.Default.LocalFireDepartment,
+                        label = "Calories",
+                        value = calories.toString(),
+                        unit = " calories"
+                    )
                 }
 
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // PAUSE WORKOUT BUTTON
+
                     OutlinedButton(
                         shape = RoundedCornerShape(100.dp),
-                        onClick = { onNavigateToHome() },
+                        onClick = {
+                            isPaused = !isPaused
+                            scope.launch {
+                                currentSession?.let { session ->
+                                    if (isPaused) {
+                                        workoutViewModel.pauseWorkout()
+                                    } else {
+                                        workoutViewModel.resumeWorkout()
+                                    }
+                                }
+                            }
+                        },
                         contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
                     ) {
-                            Text(
-                                text = "Pause",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
+                        Text(
+                            text = if (isPaused) "Resume" else "Pause",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
 
                     Spacer(modifier = Modifier.width(20.dp))
 
-                    // END WORKOUT BUTTON
+
+
                     Button(
                         shape = RoundedCornerShape(100.dp),
-                        onClick = { //create a legit workout session upon stopping
-                            val dateString = LocalDate.now()
-                                .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+                        onClick = {
+                            scope.launch {
+                                currentSession?.let { session ->
 
-                            val session = WorkoutSession(
-                                id = 0,  //placeholder
-                                date = dateString,
-                                bpm = bpm,
-                                distance = distanceMiles, //stored as raw then displayed as rounded in HomeScreen
-                                time = durationMinutes, //store accurate minutes
-                                calories = calories, //store scaled calories
-                                activity = placeholderData.activity
-                            )
-
-                            workoutRepository.createSession(session) //saves full session w/ accurate metrics
-                            onNavigateToHome()
+                                    workoutViewModel.endWorkout(
+                                        time = durationMinutes,
+                                        distance = distanceMiles,
+                                        averagePace = averagePace,
+                                        calories = calories,
+                                        bpm = bpm
+                                    )
+                                }
+                                onNavigateToHome()
+                            }
                         },
                         contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
@@ -372,7 +244,61 @@ fun WorkoutScreen(
     }
 }
 
-// helper to format stopwatch
+@Composable
+fun StatBox(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    unit: String
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier
+                .size(60.dp)
+                .align(Alignment.CenterEnd)
+                .alpha(0.15f),
+            tint = MaterialTheme.colorScheme.onPrimary
+        )
+
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+                )
+                Row {
+                    Text(
+                        text = value,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = unit,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        }
+    }
+}
+
+
 private fun formatTime(seconds: Long): String {
     val mins = (seconds / 60) % 60
     val secs = seconds % 60
@@ -380,8 +306,9 @@ private fun formatTime(seconds: Long): String {
 }
 
 @Composable
-fun MusicCard() {
+fun MusicCard(isPaused: Boolean = false) {
     var isPlaying by remember { mutableStateOf(true) }
+
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -390,8 +317,7 @@ fun MusicCard() {
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Image(
                 painter = painterResource(id = R.drawable.default_album_cover),
@@ -403,17 +329,17 @@ fun MusicCard() {
             Column(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                // SONG INFO
+
                 Column(
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
-                        text = "Song title",
+                        text = "Song title", // TODO: Connect to Spotify API
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
-                        text = "Song artist",
+                        text = "Song artist", // TODO: Connect to Spotify API
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -421,23 +347,23 @@ fun MusicCard() {
             }
         }
 
-        // TODO: REPLACE WITH PROGRESS BAR
+
         Box(
             modifier = Modifier
                 .padding(top = 20.dp, bottom = 10.dp)
                 .height(3.dp)
                 .background(MaterialTheme.colorScheme.onPrimary)
                 .fillMaxWidth()
-        ){}
-        
-        // MUSIC CONTROLS
+        ) {}
+
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
-        ){
-            // REWIND BUTTON
-            IconButton(onClick = { /* TODO */ }) {
+        ) {
+
+            IconButton(onClick = { /* TODO: Connect to Spotify */ }) {
                 Icon(
                     imageVector = Icons.Default.FastRewind,
                     contentDescription = "Rewind",
@@ -446,7 +372,7 @@ fun MusicCard() {
                 )
             }
 
-            // PLAY/PAUSE BUTTON
+
             IconButton(onClick = { isPlaying = !isPlaying }) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -456,8 +382,8 @@ fun MusicCard() {
                 )
             }
 
-            // FAST FORWARD BUTTON
-            IconButton(onClick = { /* TODO */ }) {
+
+            IconButton(onClick = { /* TODO: Connect to Spotify */ }) {
                 Icon(
                     imageVector = Icons.Default.FastForward,
                     contentDescription = "Fast Forward",

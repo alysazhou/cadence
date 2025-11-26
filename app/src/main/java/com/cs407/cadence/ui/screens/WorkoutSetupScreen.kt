@@ -3,48 +3,21 @@ package com.cs407.cadence.ui.screens
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Autorenew
-import androidx.compose.material.icons.filled.ChangeCircle
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.outlined.ChangeCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -57,9 +30,11 @@ import com.cs407.cadence.data.Activity
 import com.cs407.cadence.data.ActivityRepository
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModel
 import com.cs407.cadence.ui.viewModels.HomeScreenViewModelFactory
+import com.cs407.cadence.ui.viewModels.WorkoutViewModel
 
 @Composable
 fun WorkoutSetupScreen(
+    workoutViewModel: WorkoutViewModel,
     viewModel: HomeScreenViewModel = viewModel(
         factory = HomeScreenViewModelFactory(LocalContext.current.applicationContext as Application)
     ),
@@ -68,7 +43,7 @@ fun WorkoutSetupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // DIALOGS
+
     if (uiState.showActivitySelector) {
         ActivitySelectionDialog(
             activities = ActivityRepository.getAllActivities(),
@@ -78,205 +53,183 @@ fun WorkoutSetupScreen(
         )
     }
 
+
     if (uiState.showGenreSelector) {
         val activity = ActivityRepository.findActivityByName(uiState.selectedActivity)
-        val genreOptions = activity?.compatibleGenres ?: emptyList()
-
         GenreSelectionDialog(
-            options = genreOptions,
-            onDismiss = { viewModel.onGenreSelectorDismiss() },
+            options = activity?.compatibleGenres ?: emptyList(),
             currentSelection = uiState.selectedGenre,
+            onDismiss = { viewModel.onGenreSelectorDismiss() },
             onSelect = { genre -> viewModel.onGenreSelected(genre) }
         )
     }
 
-    Scaffold(topBar = {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-        ) {
-            Row(
+    Scaffold(
+        topBar = {
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
+                    .height(80.dp)
             ) {
-
-                IconButton(onClick = { onNavigateBack() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate back to Home Screen",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { onNavigateBack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
+
+                Text(
+                    style = MaterialTheme.typography.displayLarge,
+                    text = "WORKOUT",
+                )
             }
-            Text(
-                style = MaterialTheme.typography.displayLarge,
-                text = "WORKOUT",
-            )
         }
-    }) { innerPadding ->
+    ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(40.dp)
         ) {
-//            Column {
-//                Text(
-//                    "Customize your activity",
-//                    style = MaterialTheme.typography.titleMedium,
-//                    color = MaterialTheme.colorScheme.onPrimary
-//                )
-//            }
 
 
-            // ACTIVITY & GENRE BUTTONS
-            Column(
+            Button(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                onClick = { viewModel.onActivityButtonClick() },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
             ) {
-                // ACTIVITY BUTTON
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { viewModel.onActivityButtonClick() },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
+                    Icon(
+                        imageVector = Icons.Default.DirectionsRun,
+                        contentDescription = null,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsRun,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .align(Alignment.CenterEnd)
-                                .offset(x = -30.dp)
-                                .alpha(0.15f),
-                            tint = MaterialTheme.colorScheme.onSecondary
-                        )
+                            .size(60.dp)
+                            .align(Alignment.CenterEnd)
+                            .offset(x = -30.dp)
+                            .alpha(0.15f),
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.Start,
-                            ) {
-                                Text(
-                                    text = "Activity",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f),
-
-                                    )
-                                Text(
-                                    text = uiState.selectedActivity,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondary
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.Autorenew,
-                                contentDescription = "Change Activity",
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .align(Alignment.CenterVertically),
-                                tint = MaterialTheme.colorScheme.onSecondary
+                            Text(
+                                text = "Activity",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
+                            )
+                            Text(
+                                text = uiState.selectedActivity,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondary
                             )
                         }
-                    }
-                }
 
-                // GENRE BUTTON
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { viewModel.onGenreButtonClick() },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
                         Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .align(Alignment.CenterEnd)
-                                .offset(x = -30.dp)
-                                .alpha(0.15f),
+                            imageVector = Icons.Default.Autorenew,
+                            contentDescription = "Change Activity",
+                            modifier = Modifier.align(Alignment.CenterVertically),
                             tint = MaterialTheme.colorScheme.onSecondary
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                Text(
-                                    text = "Genre",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
-                                )
-                                Text(
-                                    text = uiState.selectedGenre,
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSecondary
-
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.Autorenew,
-                                contentDescription = "Change Genre",
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .align(Alignment.CenterVertically),
-                                tint = MaterialTheme.colorScheme.onSecondary
-                            )
-                        }
                     }
                 }
             }
 
-            // START WORKOUT BUTTON
+
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToWorkout() },
+                onClick = { viewModel.onGenreButtonClick() },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .align(Alignment.CenterEnd)
+                            .offset(x = -30.dp)
+                            .alpha(0.15f),
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
+
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Text(
+                                text = "Genre",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.4f)
+                            )
+                            Text(
+                                text = uiState.selectedGenre,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondary
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.Autorenew,
+                            contentDescription = "Change Genre",
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            tint = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                }
+            }
+
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    workoutViewModel.startWorkout()
+                    onNavigateToWorkout()
+                },
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(100.dp))
-                        .background(
-                            MaterialTheme.colorScheme.tertiary
-                        )
+                        .background(MaterialTheme.colorScheme.tertiary)
                         .padding(vertical = 15.dp, horizontal = 30.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -292,11 +245,13 @@ fun WorkoutSetupScreen(
 }
 
 
+
 @Composable
-fun ActivitySelectionDialog(    activities: List<Activity>,
-                                currentSelection: String,
-                                onDismiss: () -> Unit,
-                                onSelect: (String) -> Unit
+fun ActivitySelectionDialog(
+    activities: List<Activity>,
+    currentSelection: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit
 ) {
     var tempSelection by remember { mutableStateOf(currentSelection) }
 
@@ -307,24 +262,20 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
         Card(
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 40.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.onSecondary)
-                    .padding(10.dp)
+                    .padding(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Select activity",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .padding(bottom = 5.dp)
+                    modifier = Modifier.padding(10.dp)
                 )
 
                 LazyColumn {
@@ -332,21 +283,19 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
                         val isSelected = activity.name == tempSelection
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                                 )
                                 .fillMaxWidth()
-                                .clickable {
-                                    tempSelection = activity.name
-                                }
-                                .padding(20.dp)
+                                .clickable { tempSelection = activity.name }
+                                .padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
                                     text = activity.name,
@@ -359,29 +308,32 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
                                 )
                             }
+
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.DirectionsRun,
-                                    contentDescription = "Selected Activity",
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(20.dp))
+
                 Button(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
                         onDismiss()
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ),
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = "Done",
-                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
@@ -389,6 +341,8 @@ fun ActivitySelectionDialog(    activities: List<Activity>,
         }
     }
 }
+
+
 
 @Composable
 fun GenreSelectionDialog(
@@ -406,24 +360,20 @@ fun GenreSelectionDialog(
         Card(
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 40.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.onSecondary)
-                    .padding(10.dp)
+                    .padding(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Select genre",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .padding(bottom = 5.dp)
+                    modifier = Modifier.padding(10.dp)
                 )
 
                 LazyColumn {
@@ -431,17 +381,15 @@ fun GenreSelectionDialog(
                         val isSelected = option == tempSelection
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                                 )
                                 .fillMaxWidth()
-                                .clickable {
-                                    tempSelection = option
-                                }
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .clickable { tempSelection = option }
+                                .padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = option,
@@ -449,29 +397,32 @@ fun GenreSelectionDialog(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.weight(1f)
                             )
+
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
-                                    contentDescription = "Selected Genre",
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(20.dp))
+
                 Button(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp) ,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     onClick = {
                         onSelect(tempSelection)
                         onDismiss()
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ),
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = "Done",
-                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }

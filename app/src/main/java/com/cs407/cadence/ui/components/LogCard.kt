@@ -50,11 +50,18 @@ fun LogCard(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             if (hasLabel) {
+                val date = workoutSession.endTime?.toDate()
+                    ?: workoutSession.startTime.toDate()
+
+                val formattedDate = java.text.SimpleDateFormat(
+                    "E, MMM d",
+                    java.util.Locale.getDefault()
+                ).format(date)
+
                 Text(
-                    text = workoutSession.date,
+                    text = formattedDate,
                     style = MaterialTheme.typography.labelSmall,
                     color = dateColor
-
                 )
             }
 

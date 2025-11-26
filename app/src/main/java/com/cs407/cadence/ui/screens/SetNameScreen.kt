@@ -83,7 +83,7 @@ fun SetNameScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // DISPLAY NAME INPUT
+
             OutlinedTextField(
                 textStyle = MaterialTheme.typography.bodyMedium,
                 value = displayName,
@@ -113,7 +113,7 @@ fun SetNameScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // COMPLETE ONBOARDING BUTTON
+
                 Button(
                     contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
                     onClick = {
