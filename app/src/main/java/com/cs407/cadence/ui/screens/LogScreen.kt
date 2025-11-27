@@ -63,19 +63,6 @@ fun LogScreen(
     }
 
     Scaffold(
-        topBar = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displayLarge,
-                    text = "LOG",
-                )
-            }
-        }
     ) { innerPadding ->
         Box(
             modifier = modifier

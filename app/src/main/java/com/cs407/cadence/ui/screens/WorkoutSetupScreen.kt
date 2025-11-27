@@ -1,8 +1,15 @@
 package com.cs407.cadence.ui.screens
 
 import com.cs407.cadence.data.network.SpotifyService
+import com.cs407.cadence.data.network.SpotifyAuthManager
+import com.cs407.cadence.data.network.SpotifyWebApiClient
+import com.cs407.cadence.data.SpotifyAuthState
+import com.cs407.cadence.ui.components.SpotifyAuthDialog
 import android.content.pm.PackageManager
 import android.app.Application
+import android.util.Log
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,9 +45,7 @@ import com.cs407.cadence.ui.viewModels.UserViewModel
 @Composable
 fun WorkoutSetupScreen(
     workoutViewModel: WorkoutViewModel,
-    viewModel: HomeScreenViewModel = viewModel(),
-    userViewModel: UserViewModel = viewModel(),
-    onNavigateToWorkout: (String) -> Unit,
+    onNavigateToWorkout: (String, String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
     val homeScreenViewModel: HomeScreenViewModel = viewModel(
@@ -49,7 +54,26 @@ fun WorkoutSetupScreen(
     val uiState by homeScreenViewModel.uiState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val activity = context as? android.app.Activity
+    val coroutineScope = rememberCoroutineScope()
+    var showSpotifyAuthDialog by remember { mutableStateOf(false) }
+    
     // DIALOGS
+    
+    if (showSpotifyAuthDialog) {
+        SpotifyAuthDialog(
+            onConnect = {
+                showSpotifyAuthDialog = false
+                activity?.let {
+                    val spotifyAuthManager = SpotifyAuthManager(context)
+                    spotifyAuthManager.startAuth(it)
+                }
+            },
+            onDismiss = {
+                showSpotifyAuthDialog = false
+            }
+        )
+    }
 
     if (uiState.showActivitySelector) {
         ActivitySelectionDialog(
@@ -251,25 +275,40 @@ fun WorkoutSetupScreen(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    workoutViewModel.startWorkout()
-                    onNavigateToWorkout()
-                },
-                onClick = {
-                    val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-                    val metadata = applicationInfo.metaData
-                    val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
-                    val redirectUri = "com.cs407.cadence.auth://callback"
-                    SpotifyService.buildConnectionParams(clientId, redirectUri)
+                    // Check if Spotify token is valid
+                    coroutineScope.launch {
+                        val tokenValid = SpotifyAuthState.isTokenValid(context) && 
+                                       SpotifyWebApiClient.validateToken(context)
+                        
+                        if (!tokenValid) {
+                            Log.d("WorkoutSetup", "Token invalid or expired, showing auth dialog")
+                            showSpotifyAuthDialog = true
+                        } else {
+                            workoutViewModel.startWorkout()
+                            
+                            try {
+                                val clientId = com.cs407.cadence.BuildConfig.SPOTIFY_CLIENT_ID
+                                val clientSecret = com.cs407.cadence.BuildConfig.SPOTIFY_CLIENT_SECRET
+                                val redirectUri = "com.cs407.cadence.auth://callback"
+                                SpotifyService.buildConnectionParams(clientId, redirectUri, clientSecret)
 
-                    SpotifyService.connect(
-                        context = context,
-                        onSuccess = {
-                            onNavigateToWorkout(uiState.selectedGenre)
-                        },
-                        onFailure = { throwable ->
-                            println("Failed to connect to Spotify: ${throwable.message}")
+                                SpotifyService.connect(
+                                    context = context,
+                                    onSuccess = {
+                                        Log.d("WorkoutSetup", "Spotify connected successfully")
+                                    },
+                                    onFailure = { throwable ->
+                                        Log.e("WorkoutSetup", "Failed to connect to Spotify: ${throwable.message}")
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                Log.e("WorkoutSetup", "Error setting up Spotify: ${e.message}")
+                            }
+                            
+                            // Navigate regardless of Spotify connection status
+                            onNavigateToWorkout(uiState.selectedGenre, uiState.selectedActivity)
                         }
-                    )
+                    }
                 },
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)

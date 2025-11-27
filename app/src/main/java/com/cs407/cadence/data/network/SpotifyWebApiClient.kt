@@ -1,0 +1,255 @@
+package com.cs407.cadence.data.network
+
+import android.content.Context
+import android.util.Base64
+import android.util.Log
+import com.cs407.cadence.data.SpotifyAuthState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+object SpotifyWebApiClient {
+    private const val TAG = "SpotifyWebApiClient"
+    private const val BASE_URL = "https://api.spotify.com/"
+    private const val ACCOUNTS_BASE_URL = "https://accounts.spotify.com/"
+    
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+    
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+    
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    
+    private val accountsRetrofit = Retrofit.Builder()
+        .baseUrl(ACCOUNTS_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    
+    private val api: SpotifyWebApi = retrofit.create(SpotifyWebApi::class.java)
+    private val accountsApi: SpotifyWebApi = accountsRetrofit.create(SpotifyWebApi::class.java)
+    
+    // get access token from oauth
+    private fun getAccessToken(context: Context): String? {
+        val token = SpotifyAuthState.getAccessToken(context)
+        if (token != null) {
+            Log.d(TAG, "Using OAuth token: ${token.take(20)}...")
+        } else {
+            Log.e(TAG, "No OAuth token found - user needs to authenticate")
+        }
+        return token
+    }
+    
+    // validate if access token is working
+    suspend fun validateToken(context: Context): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val accessToken = getAccessToken(context) ?: return@withContext false
+                val response = api.getCurrentUser(authorization = "Bearer $accessToken")
+                val isValid = response.isSuccessful
+                if (!isValid) {
+                    Log.e(TAG, "Token validation failed: ${response.code()}")
+                    SpotifyAuthState.clearAuth(context)
+                }
+                isValid
+            } catch (e: Exception) {
+                Log.e(TAG, "Error validating token: ${e.message}", e)
+                false
+            }
+        }
+    }
+    
+    // map app genres to spotify seed genres
+    private fun mapToSpotifyGenre(genre: String): String {
+        return when (genre.lowercase()) {
+            "electronic" -> "edm"
+            "hip-hop" -> "hip-hop"
+            "pop" -> "pop"
+            "rock" -> "rock"
+            "metal" -> "metal"
+            "indie" -> "indie"
+            else -> "edm" // default fallback
+        }
+    }
+    
+    // get tracks filtered by bpm range and genre
+    suspend fun getTracksByBpmAndGenre(
+        context: Context,
+        genre: String,
+        targetBpm: Int,
+        bpmRange: Int = 10
+    ): List<SpotifyTrack> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val accessToken = getAccessToken(context)
+                if (accessToken == null) {
+                    Log.e(TAG, "Not authenticated with OAuth")
+                    return@withContext emptyList()
+                }
+                
+                val minBpm = targetBpm - bpmRange
+                val maxBpm = targetBpm + bpmRange
+                val spotifyGenre = mapToSpotifyGenre(genre)
+                
+                // use multiple searches to expand track pool
+                val searchQueries = com.cs407.cadence.data.BpmDatabase.getMultipleSearchQueries(
+                    spotifyGenre, minBpm, maxBpm
+                )
+                
+                Log.d(TAG, "Performing ${searchQueries.size} searches (target BPM: $minBpm-$maxBpm)")
+                
+                // collect tracks from all searches
+                val allTracks = mutableListOf<SpotifyTrack>()
+                val seenTrackIds = mutableSetOf<String>()
+                
+                for (query in searchQueries) {
+                    try {
+                        val searchResponse = api.searchTracks(
+                            query = query,
+                            limit = 50,
+                            authorization = "Bearer $accessToken"
+                        )
+                        
+                        if (searchResponse.isSuccessful && searchResponse.body() != null) {
+                            val tracks = searchResponse.body()!!.tracks.items
+                            // deduplicate by track id
+                            tracks.forEach { track ->
+                                if (track.id !in seenTrackIds) {
+                                    seenTrackIds.add(track.id)
+                                    allTracks.add(track)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in search query '$query': ${e.message}")
+                    }
+                }
+                
+                Log.d(TAG, "Found ${allTracks.size} unique tracks from ${searchQueries.size} searches")
+                
+                if (allTracks.isNotEmpty()) {
+                    // filter by actual bpm using theaudiodb/musicbrainz
+                    Log.d(TAG, "Filtering tracks by actual BPM...")
+                    val filteredTracks = AcoustIdClient.filterTracksByBpm(
+                        tracks = allTracks,
+                        targetBpm = targetBpm,
+                        bpmTolerance = bpmRange
+                    )
+                    
+                    if (filteredTracks.isNotEmpty()) {
+                        Log.d(TAG, "After BPM filtering: ${filteredTracks.size} tracks")
+                        filteredTracks.take(5).forEach { track ->
+                            Log.d(TAG, "Filtered track: '${track.name}' by ${track.artists.firstOrNull()?.name ?: "unknown"}")
+                        }
+                        return@withContext filteredTracks
+                    } else {
+                        Log.w(TAG, "No tracks found with BPM data in range $targetBpm±$bpmRange")
+                    }
+                }
+                
+                // fallback to simple genre search
+                Log.d(TAG, "Falling back to simple genre search")
+                return@withContext searchTracksByGenre(context, genre)
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting tracks: ${e.message}", e)
+                emptyList()
+            }
+        }
+    }
+    
+    // simple genre-based search fallback
+    private suspend fun searchTracksByGenre(context: Context, genre: String): List<SpotifyTrack> {
+        try {
+            val accessToken = getAccessToken(context) ?: return emptyList()
+            val spotifyGenre = mapToSpotifyGenre(genre)
+            val searchQuery = when(spotifyGenre) {
+                "edm" -> "electronic"
+                else -> spotifyGenre
+            }
+            
+            val searchResponse = api.searchTracks(
+                query = searchQuery,
+                limit = 50,
+                authorization = "Bearer $accessToken"
+            )
+            
+            if (searchResponse.isSuccessful && searchResponse.body() != null) {
+                return searchResponse.body()!!.tracks.items
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in genre search: ${e.message}")
+        }
+        return emptyList()
+    }
+    
+    // old implementation
+    private suspend fun getTracksByBpmAndGenreOld(
+        context: Context,
+        genre: String,
+        targetBpm: Int,
+        bpmRange: Int = 10
+    ): List<SpotifyTrack> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val accessToken = getAccessToken(context)
+                if (accessToken == null) {
+                    Log.e(TAG, "Not authenticated with OAuth")
+                    return@withContext emptyList()
+                }
+                
+                val minBpm = targetBpm - bpmRange
+                val maxBpm = targetBpm + bpmRange
+                val spotifyGenre = mapToSpotifyGenre(genre)
+                
+                // old failing api approaches removed
+                return@withContext emptyList()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in old implementation: ${e.message}", e)
+                emptyList()
+            }
+        }
+    }
+    
+    // get audio features for track ids
+    suspend fun getAudioFeatures(context: Context, trackIds: List<String>): List<SpotifyAudioFeatures> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val accessToken = getAccessToken(context)
+                if (accessToken == null) {
+                    Log.e(TAG, "Not authenticated with OAuth")
+                    return@withContext emptyList()
+                }
+                
+                val ids = trackIds.joinToString(",")
+                val response = api.getAudioFeatures(
+                    ids = ids,
+                    authorization = "Bearer $accessToken"
+                )
+                
+                if (response.isSuccessful && response.body() != null) {
+                    response.body()!!.audio_features.filterNotNull()
+                } else {
+                    Log.e(TAG, "Failed to get audio features: ${response.code()}")
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting audio features: ${e.message}", e)
+                emptyList()
+            }
+        }
+    }
+}

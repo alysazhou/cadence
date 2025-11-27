@@ -19,10 +19,9 @@ data class HomeScreenUiState (
 )
 class HomeScreenViewModel(application: Application): ViewModel() {
 
-    private val userRepository =
-        UserRepository(application.applicationContext)
+    private val userRepository = UserRepository()
 
-    val username: String? = userRepository.getUser()?.name
+    val username: String? = null // TODO: Get username from UserViewModel instead
     private val _uiState = MutableStateFlow(HomeScreenUiState())
     val uiState: StateFlow<HomeScreenUiState> = _uiState.asStateFlow()
 

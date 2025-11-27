@@ -7,11 +7,16 @@ import com.cs407.cadence.ui.screens.WorkoutSetupScreen
 import com.cs407.cadence.ui.screens.WorkoutScreen
 import com.cs407.cadence.ui.screens.LogScreen
 import com.cs407.cadence.ui.screens.SettingsScreen
+import com.cs407.cadence.ui.screens.MusicAuthScreen
+import com.cs407.cadence.ui.screens.SplashScreen
 import com.cs407.cadence.ui.navigation.BottomNav
 import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.UserViewModel
 import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+import com.cs407.cadence.data.network.SpotifyAuthManager
+import com.cs407.cadence.data.SpotifyAuthState
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,24 +41,45 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.cs407.cadence.ui.navigation.BottomNav
 import com.cs407.cadence.ui.screens.*
-import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.data.repository.WorkoutRepository
 
 class MainActivity : ComponentActivity() {
-
     private val userViewModel: UserViewModel by viewModels()
     private val workoutViewModel: WorkoutViewModel by viewModels()
     private val workoutRepository = WorkoutRepository()
 
+    private lateinit var spotifyAuthManager: SpotifyAuthManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        spotifyAuthManager = SpotifyAuthManager(this)
 
         setContent {
             CadenceTheme {
-                CadenceApp(userViewModel, workoutViewModel)
+                CadenceApp(
+                    userViewModel,
+                    workoutViewModel,
+                    workoutRepository,
+                    onSpotifyLogin = { spotifyAuthManager.startAuth(this) }
+                )
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1001 && data != null) {
+            spotifyAuthManager.handleAuthResponse(
+                data,
+                onSuccess = { accessToken ->
+                    SpotifyAuthState.saveAccessToken(this, accessToken)
+                },
+                onError = { error ->
+                    // Authentication failed, user can try again
+                }
+            )
         }
     }
 }
@@ -58,50 +87,78 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CadenceApp(
     userViewModel: UserViewModel,
-    workoutViewModel: WorkoutViewModel
+    workoutViewModel: WorkoutViewModel,
+    workoutRepository: WorkoutRepository,
+    onSpotifyLogin: (() -> Unit)? = null
 ) {
     val userState by userViewModel.userState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
 
+    var showSplash by remember { mutableStateOf(true) }
+    var isSpotifyAuthenticated by remember { mutableStateOf(SpotifyAuthState.isAuthenticated(navController.context)) }
+    var isContentReady by remember { mutableStateOf(false) }
 
+    // navigate to appropriate screen while splash is showing
     LaunchedEffect(userState?.uid) {
         val destination = when {
             userState == null -> "login"
             userState?.name.isNullOrEmpty() -> "setName"
+            !isSpotifyAuthenticated -> "musicAuth"
             else -> "home"
         }
 
         navController.navigate(destination) {
             popUpTo(navController.graph.startDestinationId) { inclusive = true }
         }
+        
+        // content is ready after navigation
+        isContentReady = true
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            if (currentRoute in listOf("home", "log", "settings")) {
-                BottomNav(navController)
+    // overlay splash on top of content
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            bottomBar = {
+                if (currentRoute in listOf("home", "log", "settings")) {
+                    BottomNav(navController)
+                }
             }
-        }
-    ) { innerPadding ->
+        ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = "login",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") {
-                LoginScreen(viewModel = userViewModel)
+                LoginScreen(viewModel = userViewModel, onSpotifyLogin = onSpotifyLogin)
             }
 
             composable("setName") {
                 SetNameScreen(
                     viewModel = userViewModel,
                     onNavigateToHome = {
-                        navController.navigate("home") {
+                        navController.navigate("musicAuth") {
                             popUpTo("setName") { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable("musicAuth") {
+                MusicAuthScreen(
+                    onAuthComplete = {
+                        isSpotifyAuthenticated = true
+                        navController.navigate("home") {
+                            popUpTo("musicAuth") { inclusive = true }
+                        }
+                    },
+                    onSkip = {
+                        navController.navigate("home") {
+                            popUpTo("musicAuth") { inclusive = true }
                         }
                     }
                 )
@@ -120,8 +177,8 @@ fun CadenceApp(
                         onNavigateToWorkoutSetup = { navController.navigate("workoutSetup") },
                         username = userState?.name,
                         workoutViewModel = workoutViewModel,
-                        workoutRepository = TODO(),
-                        modifier = TODO()
+                        workoutRepository = workoutRepository,
+                        modifier = Modifier
                     )
                 }
             }
@@ -129,14 +186,22 @@ fun CadenceApp(
             composable("workoutSetup") {
                 WorkoutSetupScreen(
                     workoutViewModel = workoutViewModel,
-                    onNavigateToWorkout = { selectedGenre ->
-                        navController.navigate("workout/$selectedGenre")
+                    onNavigateToWorkout = { selectedGenre, selectedActivity ->
+                        navController.navigate("workout/$selectedGenre/$selectedActivity")
                     },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable("workout") {
+            composable(
+                route = "workout/{genre}/{activity}",
+                arguments = listOf(
+                    navArgument("genre") { type = NavType.StringType },
+                    navArgument("activity") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val genre = backStackEntry.arguments?.getString("genre") ?: "pop"
+                val activity = backStackEntry.arguments?.getString("activity") ?: "Running"
                 WorkoutScreen(
                     onNavigateToHome = { navController.navigate("home") },
                     workoutViewModel = workoutViewModel,
@@ -150,6 +215,7 @@ fun CadenceApp(
             }
 
             composable("settings") {
+                var isMusicConnected by remember { mutableStateOf(SpotifyAuthState.isTokenValid(navController.context)) }
                 SettingsScreen(
                     viewModel = userViewModel,
                     displayName = userState?.name ?: "",
@@ -159,8 +225,12 @@ fun CadenceApp(
                     onClearLog = { workoutViewModel.clearAllHistory() },
                     isMusicConnected = isMusicConnected,
                     onMusicAuth = { isConnected ->
-                        viewModel.setMusicConnected(isConnected)
-                    }
+                        if (isConnected) {
+                            isSpotifyAuthenticated = true
+                        }
+                        isMusicConnected = isConnected
+                    },
+                    onSpotifyLogin = onSpotifyLogin
                 )
             }
 
@@ -171,6 +241,12 @@ fun CadenceApp(
             composable("map") {
                 MapScreen(navController = navController)
             }
+        }
+        }
+        
+        // show splash overlay on top
+        if (showSplash) {
+            SplashScreen(onSplashComplete = { showSplash = false })
         }
     }
 }

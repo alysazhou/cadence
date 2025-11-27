@@ -12,8 +12,12 @@ object SpotifyService {
     private const val TAG = "SpotifyAppRemoteService"
     private var spotifyAppRemote: SpotifyAppRemote? = null
     private var connectionParams: ConnectionParams? = null
+    private var clientId: String? = null
+    private var clientSecret: String? = null
 
-    fun buildConnectionParams(clientId: String, redirectUri: String) {
+    fun buildConnectionParams(clientId: String, redirectUri: String, clientSecret: String = "") {
+        this.clientId = clientId
+        this.clientSecret = clientSecret
         connectionParams = ConnectionParams.Builder(clientId)
             .setRedirectUri(redirectUri)
             .showAuthView(true)
@@ -46,17 +50,49 @@ object SpotifyService {
         })
     }
 
-    fun playRecommendedTracks(genre: String, targetBpm: Int) {
+    suspend fun playRecommendedTracks(context: Context, genre: String, targetBpm: Int, bpmRange: Int = 10) {
         if (spotifyAppRemote == null || spotifyAppRemote?.isConnected == false) {
             Log.e(TAG, "not connected to spotify")
             return
         }
 
-        Log.d(TAG, "genre '$genre' with target BPM '$targetBpm'")
-        Log.d(TAG, "placeholder: playing genre instead")
+        Log.d(TAG, "Fetching tracks for genre '$genre' with target BPM '$targetBpm'")
 
-        // TODO: INTEGRATE WEB API
-        playGenreStation(genre)
+        try {
+            // Get BPM-filtered tracks from Web API using OAuth
+            val tracks = SpotifyWebApiClient.getTracksByBpmAndGenre(context, genre, targetBpm, bpmRange)
+            
+            Log.d(TAG, "Web API returned ${tracks.size} tracks for genre '$genre' with BPM ${targetBpm}±${bpmRange}")
+            
+            if (tracks.isNotEmpty()) {
+                // log first few tracks
+                tracks.take(5).forEachIndexed { index, track ->
+                    Log.d(TAG, "Track ${index + 1}: '${track.name}' by ${track.artists.firstOrNull()?.name ?: "unknown"}")
+                }
+                
+                // play first track
+                val trackUri = tracks.first().uri
+                Log.d(TAG, "Playing BPM-filtered track: '${tracks.first().name}' by ${tracks.first().artists.firstOrNull()?.name ?: "unknown"}")
+                
+                spotifyAppRemote?.playerApi?.play(trackUri)?.setResultCallback {
+                    Log.d(TAG, "Successfully started playing BPM-filtered track")
+                }?.setErrorCallback { throwable ->
+                    Log.e(TAG, "Error playing track: ${throwable.message}")
+                }
+                
+                // queue remaining tracks
+                tracks.drop(1).take(19).forEach { track ->
+                    Log.d(TAG, "Queueing track: '${track.name}'")
+                    spotifyAppRemote?.playerApi?.queue(track.uri)
+                }
+            } else {
+                Log.w(TAG, "No tracks found with BPM criteria (${targetBpm}±${bpmRange}), falling back to genre station")
+                playGenreStation(genre)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in playRecommendedTracks: ${e.message}", e)
+            playGenreStation(genre)
+        }
     }
 
     fun playGenreStation(genre: String) {
@@ -73,6 +109,14 @@ object SpotifyService {
             Log.d(TAG, "Playback paused.")
         }?.setErrorCallback { throwable ->
             Log.e(TAG, "Error pausing playback: ${throwable.message}")
+        }
+    }
+
+    fun resume() {
+        spotifyAppRemote?.playerApi?.resume()?.setResultCallback {
+            Log.d(TAG, "Playback resumed.")
+        }?.setErrorCallback { throwable ->
+            Log.e(TAG, "Error resuming playback: ${throwable.message}")
         }
     }
 

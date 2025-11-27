@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
@@ -66,6 +67,7 @@ import java.util.Locale
 import com.cs407.cadence.data.repository.WorkoutRepository
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.cs407.cadence.ui.theme.Michroma
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,36 +84,30 @@ fun HomeScreen(
 
     val lastSession by workoutViewModel.lastSession.collectAsState()
     val isLoading by workoutViewModel.isLoading.collectAsState()
+    val workoutHistory by workoutViewModel.workoutHistory.collectAsState()
 
 
     LaunchedEffect(Unit) {
         workoutViewModel.loadLastSession()
+        workoutViewModel.loadWorkoutHistory()
     }
 
     val displayName = username ?: "User"
     val days = (-2..2).map { LocalDate.now().plusDays(it.toLong()) }
 
-    // TODO: Calculate workout streak from Firebase data
-    // For now, hardcoded values
-    val workoutDates = listOf(
-        LocalDate.now().minusDays(2),
-        LocalDate.now()
-    )
+    // get dates with workouts from actual workout history
+    val workoutDates = workoutHistory.mapNotNull { workout ->
+        try {
+            val date = workout.endTime?.toDate() ?: workout.startTime.toDate()
+            val instant = date.toInstant()
+            val localDate = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            localDate
+        } catch (e: Exception) {
+            null
+        }
+    }.toSet()
 
     Scaffold(
-        topBar = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displayLarge,
-                    text = "CADENCE",
-                )
-            }
-        }
     ) { innerPadding ->
         Box(
             modifier = modifier
@@ -127,12 +123,12 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = "Welcome back,",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = Michroma),
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
                         text = displayName,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = Michroma),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
 
@@ -155,7 +151,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         days.forEach { day ->
-                            val hasWorkout = workoutDates.contains(day) && day.isBefore(LocalDate.now().plusDays(1))
+                            val hasWorkout = workoutDates.contains(day)
                             DayCard(
                                 modifier = Modifier.weight(1f),
                                 date = day,
@@ -275,7 +271,7 @@ fun DayCard(modifier: Modifier = Modifier, date: LocalDate, hasWorkout: Boolean,
 
             Spacer(modifier = Modifier.height(4.dp))
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
+                imageVector = Icons.Default.Check,
                 contentDescription = "Workout completed",
                 tint = dateColor,
                 modifier = Modifier

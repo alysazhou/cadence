@@ -1,9 +1,8 @@
 package com.cs407.cadence.ui.screens
 
 import com.cs407.cadence.data.network.SpotifyService
-//import com.spotify.sdk.android.auth.AuthorizationClient
-//import com.spotify.sdk.android.auth.AuthorizationRequest
-//import com.spotify.sdk.android.auth.AuthorizationResponse
+import com.cs407.cadence.ui.components.SpotifyAuthDialog
+import com.cs407.cadence.data.SpotifyAuthState
 import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -45,7 +44,8 @@ fun SettingsScreen(
     onDisplayNameChange: (String) -> Unit,
     onClearLog: () -> Unit,
     isMusicConnected: Boolean,
-    onMusicAuth: (Boolean) -> Unit
+    onMusicAuth: (Boolean) -> Unit,
+    onSpotifyLogin: (() -> Unit)? = null
 ) {
     var isEditingUsername by remember { mutableStateOf(false) }
     var tempName by remember(displayName) { mutableStateOf(displayName) }
@@ -54,6 +54,19 @@ fun SettingsScreen(
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showMusicAuthDialog by remember { mutableStateOf(false) }
+    var showClearLogDialog by remember { mutableStateOf(false) }
+
+    if (showMusicAuthDialog) {
+        SpotifyAuthDialog(
+            onConnect = {
+                showMusicAuthDialog = false
+                onSpotifyLogin?.invoke()
+            },
+            onDismiss = {
+                showMusicAuthDialog = false
+            }
+        )
+    }
 
 //    if (showMusicAuthDialog) {
 //        val context = LocalContext.current
@@ -189,23 +202,19 @@ fun SettingsScreen(
         )
     }
 
+    if (showClearLogDialog) {
+        ClearLogDialog(
+            onConfirm = {
+                onClearLog()
+                showClearLogDialog = false
+            },
+            onDismiss = { showClearLogDialog = false }
+        )
+    }
+
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displayLarge,
-                    text = "SETTINGS",
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -276,34 +285,20 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
                 val context = LocalContext.current
+                val isTokenValid = SpotifyAuthState.isTokenValid(context)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surface)
-                        .clickable(enabled = !isMusicConnected) {
-                            val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-                            val metadata = applicationInfo.metaData
-                            val clientId = metadata.getString("com.cs407.cadence.SPOTIFY_CLIENT_ID") ?: ""
-                            val redirectUri = "com.cs407.cadence.auth://callback"
-
-                            SpotifyService.buildConnectionParams(clientId, redirectUri)
-
-                            SpotifyService.connect(
-                                context = context,
-                                    onSuccess = {
-                                    onMusicAuth(true)
-                                },
-                                onFailure = {
-                                    onMusicAuth(false)
-                                }
-                            )
+                        .clickable(enabled = !isTokenValid) {
+                            showMusicAuthDialog = true
                         }
                         .padding(horizontal = 20.dp, vertical = 15.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
-                    if (isMusicConnected) {
+                    if (isTokenValid) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
 //                            Icon(
 //                                painter = painterResource(id = R.drawable.spotify_icon_green), // Make sure you have this drawable
@@ -407,6 +402,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surface)
+                        .clickable { showClearLogDialog = true }
                         .padding(horizontal = 20.dp, vertical = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -605,6 +601,16 @@ private fun DeleteAccountDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // CANCEL BUTTON
+                    OutlinedButton(
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(100.dp),
+                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Text("Cancel", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+
                     // CONFIRM DELETE BUTTON
                     Button(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
@@ -614,7 +620,47 @@ private fun DeleteAccountDialog(
                     ) {
                         Text("Delete", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondary)
                     }
+                }
+            }
+        }
+    }
+}
 
+@Composable
+private fun ClearLogDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Column(
+                modifier = Modifier.padding(30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Clear log history",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "All of your workout history will be permanently deleted. This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     // CANCEL BUTTON
                     OutlinedButton(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
@@ -623,6 +669,16 @@ private fun DeleteAccountDialog(
                         border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
                     ) {
                         Text("Cancel", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+
+                    // CONFIRM CLEAR BUTTON
+                    Button(
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                        onClick = onConfirm,
+                        shape = RoundedCornerShape(100.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Text("Clear", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondary)
                     }
                 }
             }
