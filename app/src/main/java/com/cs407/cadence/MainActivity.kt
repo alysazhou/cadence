@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         spotifyAuthManager = SpotifyAuthManager(this)
+        
+        // Initialize RapidAPI client with API key
+        com.cs407.cadence.data.network.RapidApiClient.setApiKey(BuildConfig.RAPIDAPI_KEY)
 
         setContent {
             CadenceTheme {
@@ -206,7 +209,8 @@ fun CadenceApp(
                     onNavigateToHome = { navController.navigate("home") },
                     workoutViewModel = workoutViewModel,
                     workoutRepository = workoutRepository,
-                    selectedGenre = genre
+                    selectedGenre = genre,
+                    selectedActivity = activity
                 )
             }
 

@@ -5,22 +5,21 @@ data class Activity(
     val compatibleGenres: List<String>
 )
 object ActivityRepository {
-    // TODO: replace genres
     private val activities = listOf(
         Activity(
             name = "Walking",
             description = "Light and casual",
-            compatibleGenres = listOf("Pop", "Rock", "Electronic", "Hip-Hop")
+            compatibleGenres = listOf("Pop", "Indie", "R&B", "Jazz", "Reggae")
         ),
         Activity(
             name = "Jogging",
             description = "Steady and energetic",
-            compatibleGenres = listOf("Metal", "Hip-Hop", "Rock")
+            compatibleGenres = listOf("Electronic", "Hip-Hop", "Rock", "Pop", "Funk")
         ),
         Activity(
             name = "Running",
             description = "Fast-paced and intense",
-            compatibleGenres = listOf("Electronic", "Pop", "Indie")
+            compatibleGenres = listOf("Drum and Bass", "Techno", "Dubstep", "Metal", "Trance")
         )
     )
 

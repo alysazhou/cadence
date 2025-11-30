@@ -36,6 +36,7 @@ android {
         buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"${localProperties.getProperty("SPOTIFY_CLIENT_SECRET") ?: ""}\"")
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""}\"")
         buildConfigField("String", "ACOUSTID_API_KEY", "\"${localProperties.getProperty("ACOUSTID_API_KEY") ?: ""}\"")
+        buildConfigField("String", "RAPIDAPI_KEY", "\"${localProperties.getProperty("RAPIDAPI_KEY") ?: ""}\"")
         // TheAudioDB uses API key "2" in the base URL (no BuildConfig needed)
 
         //Google Maps API key is added to manifest through a placeholder below.
@@ -79,6 +80,9 @@ dependencies {
         // OAuth and browser authentication
         implementation("androidx.browser:browser:1.5.0")
         implementation("net.openid:appauth:0.11.1")
+    
+    // Image loading library
+    implementation("io.coil-kt:coil-compose:2.5.0")
     
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")

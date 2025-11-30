@@ -100,69 +100,44 @@ object SpotifyWebApiClient {
                     return@withContext emptyList()
                 }
                 
-                val minBpm = targetBpm - bpmRange
-                val maxBpm = targetBpm + bpmRange
                 val spotifyGenre = mapToSpotifyGenre(genre)
                 
-                // use multiple searches to expand track pool
-                val searchQueries = com.cs407.cadence.data.BpmDatabase.getMultipleSearchQueries(
-                    spotifyGenre, minBpm, maxBpm
-                )
-                
-                Log.d(TAG, "Performing ${searchQueries.size} searches (target BPM: $minBpm-$maxBpm)")
-                
-                // collect tracks from all searches
+                // Fetch multiple batches for large track pool (for background BPM processing)
                 val allTracks = mutableListOf<SpotifyTrack>()
                 val seenTrackIds = mutableSetOf<String>()
                 
-                for (query in searchQueries) {
+                // Randomize offsets to get different tracks each time
+                val randomOffsets = listOf(0, 50, 100, 150, 200, 250).shuffled().take(3)
+                
+                // Fetch 3 random batches of 50 = 150 tracks total
+                for (offset in randomOffsets) {
                     try {
-                        val searchResponse = api.searchTracks(
-                            query = query,
-                            limit = 50,
-                            authorization = "Bearer $accessToken"
-                        )
-                        
-                        if (searchResponse.isSuccessful && searchResponse.body() != null) {
-                            val tracks = searchResponse.body()!!.tracks.items
-                            // deduplicate by track id
-                            tracks.forEach { track ->
-                                if (track.id !in seenTrackIds) {
-                                    seenTrackIds.add(track.id)
-                                    allTracks.add(track)
-                                }
+                        val batch = searchTracksByGenre(context, genre, 50, offset)
+                        batch.forEach { track ->
+                            if (track.id !in seenTrackIds) {
+                                seenTrackIds.add(track.id)
+                                allTracks.add(track)
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error in search query '$query': ${e.message}")
+                        Log.e(TAG, "Error fetching batch at offset $offset: ${e.message}")
                     }
                 }
                 
-                Log.d(TAG, "Found ${allTracks.size} unique tracks from ${searchQueries.size} searches")
+                Log.d(TAG, "Fetched ${allTracks.size} unique tracks for background BPM processing")
                 
-                if (allTracks.isNotEmpty()) {
-                    // filter by actual bpm using theaudiodb/musicbrainz
-                    Log.d(TAG, "Filtering tracks by actual BPM...")
-                    val filteredTracks = AcoustIdClient.filterTracksByBpm(
-                        tracks = allTracks,
-                        targetBpm = targetBpm,
-                        bpmTolerance = bpmRange
-                    )
-                    
-                    if (filteredTracks.isNotEmpty()) {
-                        Log.d(TAG, "After BPM filtering: ${filteredTracks.size} tracks")
-                        filteredTracks.take(5).forEach { track ->
-                            Log.d(TAG, "Filtered track: '${track.name}' by ${track.artists.firstOrNull()?.name ?: "unknown"}")
-                        }
-                        return@withContext filteredTracks
-                    } else {
-                        Log.w(TAG, "No tracks found with BPM data in range $targetBpm±$bpmRange")
-                    }
+                // Shuffle tracks to randomize order
+                allTracks.shuffle()
+                
+                // Filter out compilation albums and misclassified tracks
+                val filteredTracks = allTracks.filter { track ->
+                    !isLikelyMisclassified(track, genre)
                 }
                 
-                // fallback to simple genre search
-                Log.d(TAG, "Falling back to simple genre search")
-                return@withContext searchTracksByGenre(context, genre)
+                Log.d(TAG, "Filtered to ${filteredTracks.size} tracks after removing compilations/misclassified")
+                
+                // Return shuffled and filtered tracks - BPM filtering will happen in background
+                return@withContext filteredTracks
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting tracks: ${e.message}", e)
@@ -171,19 +146,70 @@ object SpotifyWebApiClient {
         }
     }
     
+    private fun isLikelyMisclassified(track: SpotifyTrack, requestedGenre: String): Boolean {
+        val albumName = track.album.name.lowercase()
+        val trackName = track.name.lowercase()
+        val artistName = track.artists.firstOrNull()?.name?.lowercase() ?: ""
+        
+        // Filter out compilation albums
+        if (albumName.contains("compilation") || 
+            albumName.contains("various artists") ||
+            albumName.contains("mixed by") ||
+            albumName.contains("dj mix")) {
+            return true
+        }
+        
+        // Filter out tracks with suspicious indicators
+        val suspiciousKeywords = listOf(
+            "chiptune", "8-bit", "remix compilation", "megamix"
+        )
+        
+        if (suspiciousKeywords.any { trackName.contains(it) || albumName.contains(it) }) {
+            return true
+        }
+        
+        // Genre-specific filtering
+        when (requestedGenre.lowercase()) {
+            "reggae" -> {
+                // Filter out electronic/dance tracks misclassified as reggae
+                val electronicKeywords = listOf("edm", "electro", "dubstep", "dnb", "drum and bass", "techno")
+                if (electronicKeywords.any { artistName.contains(it) || trackName.contains(it) }) {
+                    return true
+                }
+            }
+        }
+        
+        return false
+    }
+    
     // simple genre-based search fallback
-    private suspend fun searchTracksByGenre(context: Context, genre: String): List<SpotifyTrack> {
+    private suspend fun searchTracksByGenre(
+        context: Context, 
+        genre: String, 
+        limit: Int = 50, 
+        offset: Int = 0
+    ): List<SpotifyTrack> {
         try {
             val accessToken = getAccessToken(context) ?: return emptyList()
             val spotifyGenre = mapToSpotifyGenre(genre)
-            val searchQuery = when(spotifyGenre) {
-                "edm" -> "electronic"
-                else -> spotifyGenre
-            }
+            
+            // Vary the year range to get different tracks each time
+            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            val yearRanges = listOf(
+                "year:${currentYear-2}-${currentYear}",      // Very recent
+                "year:${currentYear-5}-${currentYear-2}",    // Recent
+                "year:${currentYear-10}-${currentYear-5}"    // Older classics
+            )
+            val yearRange = yearRanges.random()
+            
+            val searchQuery = "genre:$spotifyGenre $yearRange"
+            
+            Log.d(TAG, "Searching: $searchQuery (offset: $offset)")
             
             val searchResponse = api.searchTracks(
                 query = searchQuery,
-                limit = 50,
+                limit = limit,
+                offset = offset,
                 authorization = "Bearer $accessToken"
             )
             

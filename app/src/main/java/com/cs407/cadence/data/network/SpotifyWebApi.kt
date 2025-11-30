@@ -67,6 +67,7 @@ interface SpotifyWebApi {
         @Query("q") query: String,
         @Query("type") type: String = "track",
         @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
         @Header("Authorization") authorization: String
     ): Response<SpotifySearchResponse>
 

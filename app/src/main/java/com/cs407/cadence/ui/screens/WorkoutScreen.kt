@@ -192,7 +192,30 @@ fun WorkoutScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    MusicCard(isPaused = isPaused)
+                    MusicCard(
+                        isPaused = isPaused,
+                        onPlayPauseClick = {
+                            isPaused = !isPaused
+                            if (isPaused) {
+                                SpotifyService.pause()
+                                scope.launch {
+                                    currentSession?.let { workoutViewModel.pauseWorkout() }
+                                }
+                            } else {
+                                SpotifyService.resume()
+                                scope.launch {
+                                    currentSession?.let { workoutViewModel.resumeWorkout() }
+                                }
+                            }
+                        },
+                        onSkipNext = {
+                            SpotifyService.playNextTrack()
+                        },
+                        onSkipPrevious = {
+                            // Spotify doesn't support previous track easily, so we'll skip back in current track
+                            SpotifyService.skipToPosition(0)
+                        }
+                    )
 
                     // TEMPO
                     WorkoutStatCard(
@@ -303,16 +326,32 @@ fun formatTime(seconds: Long): String {
 // helper to get BPM range based on activity type
 fun getBpmRangeForActivity(activity: String): Pair<Int, Int> {
     return when (activity.lowercase()) {
-        "walking" -> Pair(90, 110)
-        "jogging" -> Pair(110, 130)
-        "running" -> Pair(130, 150)
-        else -> Pair(130, 150) // default to running
+        "walking" -> Pair(120, 140)
+        "jogging" -> Pair(140, 160)
+        "running" -> Pair(160, 180)
+        else -> Pair(160, 180) // default to running
     }
 }
 
 @Composable
-fun MusicCard(isPaused: Boolean = false) {
-    var isPlaying by remember { mutableStateOf(true) }
+fun MusicCard(
+    isPaused: Boolean = false,
+    onPlayPauseClick: () -> Unit = {},
+    onSkipNext: () -> Unit = {},
+    onSkipPrevious: () -> Unit = {}
+) {
+    val currentTrack by SpotifyService.currentTrack.collectAsState()
+    
+    val trackName = currentTrack?.name ?: "Loading..."
+    val artistName = currentTrack?.artist?.name ?: ""
+    val albumArtUri = currentTrack?.imageUri?.raw
+    
+    LaunchedEffect(currentTrack) {
+        if (currentTrack != null) {
+            Log.d("MusicCard", "Track updated: $trackName by $artistName, Album art: $albumArtUri")
+        }
+    }
+    
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -324,9 +363,11 @@ fun MusicCard(isPaused: Boolean = false) {
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.default_album_cover),
+            coil.compose.AsyncImage(
+                model = albumArtUri,
                 contentDescription = "album art",
+                placeholder = painterResource(id = R.drawable.default_album_cover),
+                error = painterResource(id = R.drawable.default_album_cover),
                 modifier = Modifier
                     .width(100.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -339,20 +380,22 @@ fun MusicCard(isPaused: Boolean = false) {
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
-                        text = "Song title",
+                        text = trackName,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 2
                     )
                     Text(
-                        text = "Song artist",
+                        text = artistName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1
                     )
                 }
             }
         }
 
-        // TODO: REPLACE WITH PROGRESS BAR
+        // Progress bar placeholder
         Box(
             modifier = Modifier
                 .padding(top = 20.dp, bottom = 10.dp)
@@ -367,31 +410,31 @@ fun MusicCard(isPaused: Boolean = false) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // REWIND BUTTON
-            IconButton(onClick = { /* TODO */ }) {
+            // REWIND BUTTON (skip to beginning of track)
+            IconButton(onClick = onSkipPrevious) {
                 Icon(
                     imageVector = Icons.Default.FastRewind,
-                    contentDescription = "Rewind",
+                    contentDescription = "Skip to beginning",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(30.dp)
                 )
             }
 
             // PLAY/PAUSE BUTTON
-            IconButton(onClick = { isPlaying = !isPlaying }) {
+            IconButton(onClick = onPlayPauseClick) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    imageVector = if (!isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (!isPaused) "Pause" else "Play",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(30.dp)
                 )
             }
 
-            // FAST FORWARD BUTTON
-            IconButton(onClick = { /* TODO */ }) {
+            // SKIP NEXT BUTTON
+            IconButton(onClick = onSkipNext) {
                 Icon(
                     imageVector = Icons.Default.FastForward,
-                    contentDescription = "Fast Forward",
+                    contentDescription = "Skip to next",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(30.dp)
                 )
