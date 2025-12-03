@@ -102,14 +102,14 @@ object SpotifyWebApiClient {
                 
                 val spotifyGenre = mapToSpotifyGenre(genre)
                 
-                // Fetch multiple batches for large track pool (for background BPM processing)
+                // fetch multiple batches for large track pool
                 val allTracks = mutableListOf<SpotifyTrack>()
                 val seenTrackIds = mutableSetOf<String>()
                 
-                // Randomize offsets to get different tracks each time
+                // randomize pool
                 val randomOffsets = listOf(0, 50, 100, 150, 200, 250).shuffled().take(3)
                 
-                // Fetch 3 random batches of 50 = 150 tracks total
+                // fetch 3 random batches
                 for (offset in randomOffsets) {
                     try {
                         val batch = searchTracksByGenre(context, genre, 50, offset)
@@ -126,7 +126,7 @@ object SpotifyWebApiClient {
                 
                 Log.d(TAG, "Fetched ${allTracks.size} unique tracks for background BPM processing")
                 
-                // Shuffle tracks to randomize order
+                // shuffle tracks to randomize
                 allTracks.shuffle()
                 
                 // Filter out compilation albums and misclassified tracks
@@ -151,7 +151,7 @@ object SpotifyWebApiClient {
         val trackName = track.name.lowercase()
         val artistName = track.artists.firstOrNull()?.name?.lowercase() ?: ""
         
-        // Filter out compilation albums
+        // filter out compilation albums (gets better genre results)
         if (albumName.contains("compilation") || 
             albumName.contains("various artists") ||
             albumName.contains("mixed by") ||
@@ -159,7 +159,6 @@ object SpotifyWebApiClient {
             return true
         }
         
-        // Filter out tracks with suspicious indicators
         val suspiciousKeywords = listOf(
             "chiptune", "8-bit", "remix compilation", "megamix"
         )
@@ -167,18 +166,6 @@ object SpotifyWebApiClient {
         if (suspiciousKeywords.any { trackName.contains(it) || albumName.contains(it) }) {
             return true
         }
-        
-        // Genre-specific filtering
-        when (requestedGenre.lowercase()) {
-            "reggae" -> {
-                // Filter out electronic/dance tracks misclassified as reggae
-                val electronicKeywords = listOf("edm", "electro", "dubstep", "dnb", "drum and bass", "techno")
-                if (electronicKeywords.any { artistName.contains(it) || trackName.contains(it) }) {
-                    return true
-                }
-            }
-        }
-        
         return false
     }
     

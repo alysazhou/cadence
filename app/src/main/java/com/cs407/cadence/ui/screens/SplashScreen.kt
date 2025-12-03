@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.zIndex
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,65 +24,59 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.cs407.cadence.R
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(
-    onSplashComplete: () -> Unit
-) {
+fun SplashScreen(onSplashComplete: () -> Unit) {
     val alpha = remember { Animatable(1f) }
 
     LaunchedEffect(Unit) {
-        // wait 1.5 seconds before starting fade
         delay(1500)
-        // fade out over 500ms
-        alpha.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(durationMillis = 500)
-        )
+        alpha.animateTo(targetValue = 0f, animationSpec = tween(durationMillis = 500))
         // notify that splash is complete
         onSplashComplete()
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(10f)
-            .graphicsLayer { this.alpha = alpha.value }
-            .background(MaterialTheme.colorScheme.primary)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
+            modifier =
+                    Modifier.fillMaxSize()
+                            .zIndex(10f)
+                            .graphicsLayer { this.alpha = alpha.value }
+                            .background(MaterialTheme.colorScheme.primary)
+                            .background(
+                                    Brush.verticalGradient(
+                                            colors =
+                                                    listOf(
+                                                            MaterialTheme.colorScheme.primary,
+                                                            MaterialTheme.colorScheme.secondary
+                                                                    .copy(alpha = 0.3f)
+                                                    )
+                                    )
+                            ),
+            contentAlignment = Alignment.Center
     ) {
-        // logo in center
-        val logoImage = if (isSystemInDarkTheme()) {
-            R.drawable.cadence_logo_turquoise
-        } else {
-            R.drawable.cadence_logo_blue
-        }
+        val logoImage =
+                if (isSystemInDarkTheme()) {
+                    R.drawable.cadence_logo_turquoise
+                } else {
+                    R.drawable.cadence_logo_blue
+                }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Image(
-                painter = painterResource(logoImage),
-                contentDescription = "Cadence logo",
-                modifier = Modifier.width(180.dp)
+                    painter = painterResource(logoImage),
+                    contentDescription = "Cadence logo",
+                    modifier = Modifier.width(180.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "CADENCE",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 4.sp,
-                color = MaterialTheme.colorScheme.secondary
+                    text = "CADENCE",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp,
+                    color = MaterialTheme.colorScheme.secondary
             )
         }
     }
