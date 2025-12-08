@@ -8,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -54,34 +54,31 @@ class MainActivity : ComponentActivity() {
     private val workoutRepository = WorkoutRepository()
 
     private lateinit var spotifyAuthManager: SpotifyAuthManager
-    
-    private val locationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            android.util.Log.d("MainActivity", "Location permission granted")
-        } else {
-            android.util.Log.w("MainActivity", "Location permission denied")
-        }
-    }
-    
-    private val activityRecognitionPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            android.util.Log.d("MainActivity", "Activity recognition permission granted")
-        } else {
-            android.util.Log.w("MainActivity", "Activity recognition permission denied")
-        }
-    }
+
+    private val locationPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (isGranted) {
+                    android.util.Log.d("MainActivity", "Location permission granted")
+                } else {
+                    android.util.Log.w("MainActivity", "Location permission denied")
+                }
+            }
+
+    private val activityRecognitionPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (isGranted) {
+                    android.util.Log.d("MainActivity", "Activity recognition permission granted")
+                } else {
+                    android.util.Log.w("MainActivity", "Activity recognition permission denied")
+                }
+            }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         spotifyAuthManager = SpotifyAuthManager(this)
 
-
         com.cs407.cadence.data.network.RapidApiClient.setApiKey(BuildConfig.RAPIDAPI_KEY)
-        
+
         // Check and request permissions on every app start
         checkLocationPermission()
         checkActivityRecognitionPermission()
@@ -97,13 +94,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun checkLocationPermission() {
         when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED -> {
                 // Permission already granted
                 android.util.Log.d("MainActivity", "Location permission already granted")
             }
@@ -113,20 +108,23 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun checkActivityRecognitionPermission() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             when {
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACTIVITY_RECOGNITION
-                ) == PackageManager.PERMISSION_GRANTED -> {
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) ==
+                        PackageManager.PERMISSION_GRANTED -> {
                     // Permission already granted
-                    android.util.Log.d("MainActivity", "Activity recognition permission already granted")
+                    android.util.Log.d(
+                            "MainActivity",
+                            "Activity recognition permission already granted"
+                    )
                 }
                 else -> {
                     // Request permission
-                    activityRecognitionPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                    activityRecognitionPermissionLauncher.launch(
+                            Manifest.permission.ACTIVITY_RECOGNITION
+                    )
                 }
             }
         }
@@ -141,8 +139,7 @@ class MainActivity : ComponentActivity() {
                     onSuccess = { accessToken ->
                         SpotifyAuthState.saveAccessToken(this, accessToken)
                     },
-                    onError = { error ->
-                    }
+                    onError = { error -> }
             )
         }
     }
@@ -273,8 +270,12 @@ fun CadenceApp(
                     val genre = backStackEntry.arguments?.getString("genre") ?: "pop"
                     val activity = backStackEntry.arguments?.getString("activity") ?: "Running"
                     val context = LocalContext.current
-                    val autoStopSetting = com.cs407.cadence.data.AppSettings.isAutoStopEnabled(context)
-                    android.util.Log.d("MainActivity", "Starting workout with autoStopEnabled: $autoStopSetting")
+                    val autoStopSetting =
+                            com.cs407.cadence.data.AppSettings.isAutoStopEnabled(context)
+                    android.util.Log.d(
+                            "MainActivity",
+                            "Starting workout with autoStopEnabled: $autoStopSetting"
+                    )
                     WorkoutScreen(
                             onNavigateToHome = { navController.navigate("home") },
                             onNavigateToResults = { time, distance, calories, avgBpm, songs ->

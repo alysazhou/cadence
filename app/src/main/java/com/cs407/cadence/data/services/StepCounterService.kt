@@ -60,7 +60,7 @@ object StepCounterService {
 
                             val workoutSteps = totalSteps - (initialSteps ?: totalSteps)
                             val distanceMeters = workoutSteps * AVERAGE_STRIDE_LENGTH_METERS
-                            
+
                             Log.d(TAG, "Workout steps: $workoutSteps, Distance: ${distanceMeters}m")
                             trySend(StepUpdate(workoutSteps, distanceMeters))
                         }
@@ -71,7 +71,8 @@ object StepCounterService {
                     }
                 }
 
-        val registered = sensorManager?.registerListener(listener, stepSensor, SensorManager.SENSOR_DELAY_UI)
+        val registered =
+                sensorManager?.registerListener(listener, stepSensor, SensorManager.SENSOR_DELAY_UI)
         Log.d(TAG, "Step counting started, listener registered: $registered")
 
         awaitClose {

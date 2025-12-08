@@ -95,7 +95,7 @@ fun WorkoutScreen(
     var isPaused by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     val context = LocalContext.current
-    
+
     Log.d("WorkoutScreen", "WorkoutScreen started with autoStopEnabled: $autoStopEnabled")
 
     // Track played songs
@@ -117,26 +117,26 @@ fun WorkoutScreen(
     var timeWithMovement by remember { mutableLongStateOf(0L) }
     var wasAutoPaused by remember { mutableStateOf(false) }
     var isCurrentlyMoving by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(Unit) {
         wasAutoPaused = false
         isCurrentlyMoving = true
     }
-    
+
     Log.d("WorkoutScreen", "State - wasAutoPaused: $wasAutoPaused, isPaused: $isPaused")
 
     // initialize services
     LaunchedEffect(Unit) {
         StepCounterService.initialize(context)
         MovementDetectionService.initialize(context)
-        
+
         if (!StepCounterService.isAvailable(context)) {
             Log.w("WorkoutScreen", "Step counter not available on this device")
         }
         if (!MovementDetectionService.isAvailable(context)) {
             Log.w("WorkoutScreen", "Accelerometer not available on this device")
         }
-        
+
         // assume user is moving when workout starts
         lastMovementTime = System.currentTimeMillis()
     }
@@ -146,7 +146,7 @@ fun WorkoutScreen(
         Log.d("WorkoutScreen", "Step counting LaunchedEffect triggered (isPaused: $isPaused)")
         val available = StepCounterService.isAvailable(context)
         Log.d("WorkoutScreen", "Step counter available: $available")
-        
+
         if (!isPaused && available) {
             Log.d("WorkoutScreen", "Starting step counter...")
             StepCounterService.resetSteps()
@@ -156,7 +156,10 @@ fun WorkoutScreen(
                 Log.d("WorkoutScreen", "Steps: ${update.steps}, Distance: ${distanceMeters}m")
             }
         } else {
-            Log.d("WorkoutScreen", "Step counter NOT started (isPaused: $isPaused, available: $available)")
+            Log.d(
+                    "WorkoutScreen",
+                    "Step counter NOT started (isPaused: $isPaused, available: $available)"
+            )
         }
     }
 
@@ -165,12 +168,18 @@ fun WorkoutScreen(
         if (autoStopEnabled && MovementDetectionService.isAvailable(context)) {
             MovementDetectionService.startDetection(context).collect { movementState ->
                 isCurrentlyMoving = movementState.isMoving
-                
+
                 if (movementState.isMoving) {
                     lastMovementTime = System.currentTimeMillis()
-                    Log.d("WorkoutScreen", "Movement detected via accelerometer (accel: ${movementState.acceleration} m/s²)")
+                    Log.d(
+                            "WorkoutScreen",
+                            "Movement detected via accelerometer (accel: ${movementState.acceleration} m/s²)"
+                    )
                 } else {
-                    Log.d("WorkoutScreen", "Stationary detected via accelerometer (accel: ${movementState.acceleration} m/s²)")
+                    Log.d(
+                            "WorkoutScreen",
+                            "Stationary detected via accelerometer (accel: ${movementState.acceleration} m/s²)"
+                    )
                 }
             }
         }
@@ -184,23 +193,27 @@ fun WorkoutScreen(
                 delay(1000) // check every second
                 val currentTime = System.currentTimeMillis()
                 timeSinceLastMovement = currentTime - lastMovementTime
-                
+
                 if (timeSinceLastMovement >= 2000) {
-                    Log.d("WorkoutScreen", "No movement for ${timeSinceLastMovement/1000}s (isPaused: $isPaused, wasAutoPaused: $wasAutoPaused)")
+                    Log.d(
+                            "WorkoutScreen",
+                            "No movement for ${timeSinceLastMovement/1000}s (isPaused: $isPaused, wasAutoPaused: $wasAutoPaused)"
+                    )
                 }
-                
+
                 // auto-pause if no movement for 3 seconds
                 if (timeSinceLastMovement >= 3000 && !isPaused) {
                     Log.d("WorkoutScreen", "Auto-pausing: no movement detected for 3 seconds")
                     isPaused = true
                     wasAutoPaused = true
-                    scope.launch {
-                        SpotifyService.pause()
-                    }
+                    scope.launch { SpotifyService.pause() }
                 }
             }
         } else {
-            Log.d("WorkoutScreen", "Auto-stop monitoring not active (enabled: $autoStopEnabled, paused: $isPaused)")
+            Log.d(
+                    "WorkoutScreen",
+                    "Auto-stop monitoring not active (enabled: $autoStopEnabled, paused: $isPaused)"
+            )
         }
     }
 
@@ -210,21 +223,19 @@ fun WorkoutScreen(
             Log.d("WorkoutScreen", "Auto-resume monitoring started")
             while (isActive) {
                 delay(500)
-                
-                // Check if currently moving 
+
+                // Check if currently moving
                 if (isCurrentlyMoving) {
                     timeWithMovement += 500
                     Log.d("WorkoutScreen", "Movement accumulating: ${timeWithMovement}ms")
-                    
+
                     // resume if movement detected for 3 seconds
                     if (timeWithMovement >= 3000) {
                         Log.d("WorkoutScreen", "Auto-resuming: movement detected for 3 seconds")
                         isPaused = false
                         wasAutoPaused = false
                         timeWithMovement = 0L
-                        scope.launch {
-                            SpotifyService.resume()
-                        }
+                        scope.launch { SpotifyService.resume() }
                     }
                 } else {
                     // reset movement timer if not currently moving
@@ -249,11 +260,14 @@ fun WorkoutScreen(
 
     // convert meters to miles
     val distanceMiles = distanceMeters / 1609.34
-    
+
     // debug logging
     LaunchedEffect(distanceMeters, workoutLength) {
         if (workoutLength % 5 == 0L) { // log every 5 seconds
-            Log.d("WorkoutScreen", "Stats - Steps: $currentSteps, Distance: ${distanceMiles} mi (${distanceMeters}m), Time: ${workoutLength}s")
+            Log.d(
+                    "WorkoutScreen",
+                    "Stats - Steps: $currentSteps, Distance: ${distanceMiles} mi (${distanceMeters}m), Time: ${workoutLength}s"
+            )
         }
     }
 
@@ -264,14 +278,19 @@ fun WorkoutScreen(
             } else 0.0
 
     // improved calorie calculation (dynamically updates with workoutLength and distance)
-    val calories = remember(workoutLength, distanceMeters, selectedActivity) {
-        // only calculate calories after at least 30 seconds or 10 steps
-        if (workoutLength < 30L || currentSteps < 10) {
-            0
-        } else {
-            LocationService.calculateCalories(selectedActivity, durationMinutes, avgSpeedKmh)
-        }
-    }
+    val calories =
+            remember(workoutLength, distanceMeters, selectedActivity) {
+                // only calculate calories after at least 30 seconds or 10 steps
+                if (workoutLength < 30L || currentSteps < 10) {
+                    0
+                } else {
+                    LocationService.calculateCalories(
+                            selectedActivity,
+                            durationMinutes,
+                            avgSpeedKmh
+                    )
+                }
+            }
 
     val averagePace = if (distanceMiles > 0) durationMinutes / distanceMiles else 0.0
 
@@ -494,7 +513,10 @@ fun WorkoutScreen(
                                     isPaused = !isPaused
                                     // Reset auto-pause state when manually pausing/resuming
                                     wasAutoPaused = false
-                                    Log.d("WorkoutScreen", "Manual ${if (isPaused) "pause" else "resume"} - reset wasAutoPaused")
+                                    Log.d(
+                                            "WorkoutScreen",
+                                            "Manual ${if (isPaused) "pause" else "resume"} - reset wasAutoPaused"
+                                    )
 
                                     if (isPaused) {
                                         SpotifyService.pause()

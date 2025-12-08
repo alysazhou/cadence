@@ -115,7 +115,7 @@ fun LogScreen(
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
                         )
                     }
-                    
+
                     item {
                         MostRecentActivityCard(
                                 workoutSession = workoutHistory.first(),

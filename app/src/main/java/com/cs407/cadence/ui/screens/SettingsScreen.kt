@@ -360,7 +360,7 @@ fun SettingsScreen(
                         Switch(
                                 modifier = Modifier.scale(0.8f),
                                 checked = autoStopEnabled,
-                                onCheckedChange = { 
+                                onCheckedChange = {
                                     autoStopEnabled = it
                                     AppSettings.setAutoStopEnabled(context, it)
                                 },
