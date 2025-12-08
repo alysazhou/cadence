@@ -1,6 +1,7 @@
 package com.cs407.cadence.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,21 +11,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,124 +38,109 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.data.models.WorkoutSession
-import com.cs407.cadence.data.repository.FirebaseWorkoutRepository
 import com.cs407.cadence.ui.theme.CadenceTheme
-import com.cs407.cadence.ui.viewModels.UserViewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.lazy.items
-
+import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun LogScreen(
-    modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        workoutViewModel: WorkoutViewModel = viewModel(),
+        onNavigateToWorkoutSummary: (WorkoutSession) -> Unit = {}
 ) {
 
-    val userViewModel: UserViewModel = viewModel()
-    val uid = userViewModel.userState.collectAsState().value?.uid
-    var sessions by remember { mutableStateOf<List<WorkoutSession>>(emptyList()) }
+    val workoutHistory by workoutViewModel.workoutHistory.collectAsState()
+    val isLoading by workoutViewModel.isLoading.collectAsState()
 
-//    val placeholderData = WorkoutSession(
-//        id = 1,
-//        date = "05/20/2004",
-//        bpm = 180,
-//        distance = 3.1,
-//        time = 30,
-//        calories = 100,
-//        activity = "Running"
-//    )
-
-    LaunchedEffect(uid) {
-        if (uid != null) {
-            val repo = FirebaseWorkoutRepository()
-            sessions = repo.getAllSessions(uid)
-                .sortedByDescending { it.date }
-        }
-    }
+    LaunchedEffect(Unit) { workoutViewModel.loadWorkoutHistory() }
 
     Scaffold(
-        topBar = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displayLarge,
-                    text = "LOG",
-                )
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp)
-        ) {
-            //if no logged workouts yet
-            if (sessions.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+            topBar = {
+                Box(
+                        modifier =
+                                Modifier.fillMaxWidth().height(80.dp).padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
                 ) {
-                    Text("No workouts logged yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    Text(
+                            text = "Log",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
-                return@Scaffold
             }
+    ) { innerPadding ->
+        Box(modifier = modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 20.dp)) {
+            if (isLoading) {
 
-            LazyColumn(
-                verticalArrangement = Arrangement
-                    .spacedBy(10.dp),
-            ) {
-                item() {
-                    Text(
-                        text = "Most recent workout",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-                    )
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-                    //MostRecentActivityCard(workoutSession = placeholderData)
-                    //MostRecentActivityCard(sessions.first())
-                    MostRecentActivityCard(
-                        workoutSession = sessions.first()
-                    )
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
+            } else if (workoutHistory.isEmpty()) {
 
-                item() {
-                    Text(
-                        text = "Previous workouts",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-                    )
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-                    //LogCard(workoutSession = placeholderData)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
+                                contentDescription = "No workouts",
+                                tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(64.dp)
+                        )
+                        Text(
+                                text = "No workouts yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+                        )
+                        Text(
+                                text = "Complete a workout to see it here!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
+                        )
+                    }
                 }
+            } else {
 
-//                items(9) { index ->
-//                    LogCard(workoutSession = placeholderData)
-//                }
-//
-//                item() {}
-                items(sessions.drop(1)) { session ->
-                    LogCard(session)
+                LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    item {
+                        Text(
+                                text = "Most recent workout",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+                        )
+                    }
+
+                    item {
+                        MostRecentActivityCard(
+                                workoutSession = workoutHistory.first(),
+                                onClick = { onNavigateToWorkoutSummary(workoutHistory.first()) }
+                        )
+                    }
+
+                    if (workoutHistory.size > 1) {
+                        item {
+                            Text(
+                                    text = "Previous workouts",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+                            )
+                        }
+
+                        items(workoutHistory.drop(1)) { workout ->
+                            LogCard(
+                                    workoutSession = workout,
+                                    onClick = { onNavigateToWorkoutSummary(workout) }
+                            )
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(10.dp)) }
                 }
             }
         }
@@ -157,44 +148,62 @@ fun LogScreen(
 }
 
 @Composable
-fun LogCard(
-    workoutSession: WorkoutSession
-) {
+fun LogCard(workoutSession: WorkoutSession, onClick: () -> Unit = {}) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(20.dp)
+            modifier =
+                    Modifier.clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(20.dp)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            val formattedDate = try {
-                val inputFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-                val outputFormatter = DateTimeFormatter.ofPattern("E, MMM d")
-                LocalDate.parse(workoutSession.date, inputFormatter).format(outputFormatter)
-            } catch (e: Exception) {
-                workoutSession.date
-            }
-            Text(
-                text = formattedDate,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Column(
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
+            ) {
+                val formattedDate =
+                        try {
+                            val date =
+                                    workoutSession.endTime?.toDate()
+                                            ?: workoutSession.startTime.toDate()
 
-            Row() {
+                            val outputFormatter = SimpleDateFormat("E, MMM d", Locale.getDefault())
+                            outputFormatter.format(date)
+                        } catch (e: Exception) {
+
+                            val fallbackFormatter =
+                                    SimpleDateFormat("E, MMM d", Locale.getDefault())
+                            fallbackFormatter.format(workoutSession.startTime.toDate())
+                        }
+
                 Text(
-                    text = workoutSession.activity,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
+                        text = formattedDate,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
-                Text(
-                    text = " for ${workoutSession.time} min",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+
+                Row {
+                    Text(
+                            text = workoutSession.activity.ifEmpty { "Running" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                            text = " for ${workoutSession.time} min",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+
+            androidx.compose.material3.IconButton(onClick = onClick) {
+                Icon(
+                        imageVector =
+                                androidx.compose.material.icons.Icons.AutoMirrored.Filled
+                                        .ArrowForward,
+                        contentDescription = "View workout summary",
+                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                 )
             }
         }
@@ -203,75 +212,80 @@ fun LogCard(
 
 @Composable
 fun MostRecentActivityCard(
-    modifier: Modifier = Modifier,
-    workoutSession: WorkoutSession,
+        modifier: Modifier = Modifier,
+        workoutSession: WorkoutSession,
+        onClick: () -> Unit = {}
 ) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(20.dp)
+            modifier =
+                    Modifier.clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(20.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                val formattedDate = try {
-                    val inputFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-                    val outputFormatter = DateTimeFormatter.ofPattern("E, MMM d")
-                    LocalDate.parse(workoutSession.date, inputFormatter).format(outputFormatter)
-                } catch (e: Exception) {
-                    workoutSession.date
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                val formattedDate =
+                        try {
+                            val date =
+                                    workoutSession.endTime?.toDate()
+                                            ?: workoutSession.startTime.toDate()
+
+                            val outputFormatter = SimpleDateFormat("E, MMM d", Locale.getDefault())
+                            outputFormatter.format(date)
+                        } catch (e: Exception) {
+                            val fallbackFormatter =
+                                    SimpleDateFormat("E, MMM d", Locale.getDefault())
+                            fallbackFormatter.format(workoutSession.startTime.toDate())
+                        }
+
                 Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+                        text = formattedDate,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
-                Row() {
+                Row {
                     Text(
-                        text = workoutSession.activity,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                            text = workoutSession.activity.ifEmpty { "Running" },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
-                        text = " for ${workoutSession.time} min",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
+                            text = " for ${workoutSession.time} min",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
 
-            // row of stats
             Row(
-                modifier = modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
+                    modifier = modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
             ) {
                 Stat(
-                    icon = Icons.Default.Favorite,
-                    value = workoutSession.bpm.toString(),
-                    label = "bpm",
+                        icon = Icons.Default.Favorite,
+                        value = workoutSession.bpm.toString(),
+                        label = "bpm",
                 )
                 Stat(
-                    icon = Icons.Default.Place,
-                    value = workoutSession.distance.toString(),
-                    label = "mi",
+                        icon = Icons.Default.Place,
+                        value = String.format("%.2f", workoutSession.distance),
+                        label = "mi",
                 )
                 Stat(
-                    icon = Icons.Default.Timer,
-                    value = workoutSession.time.toString(),
-                    label = "min",
+                        icon = Icons.Default.Timer,
+                        value = workoutSession.time.toString(),
+                        label = "min",
                 )
                 Stat(
-                    icon = Icons.Default.LocalFireDepartment,
-                    value = workoutSession.calories.toString(),
-                    label = "cal",
+                        icon = Icons.Default.LocalFireDepartment,
+                        value = workoutSession.calories.toString(),
+                        label = "cal",
                 )
             }
         }
@@ -281,19 +295,15 @@ fun MostRecentActivityCard(
 @Preview
 @Composable
 fun LogCardPreview() {
-    val placeholderData = WorkoutSession(
-        id = 1,
-        date = "05/20/2004",
-        bpm = 180,
-        distance = 3.1,
-        time = 30,
-        calories = 100,
-        activity = "Running"
-    )
-    CadenceTheme() {
-        Box(modifier = Modifier.background(Color.White)){
-            LogCard(placeholderData)
-        }
-
-    }
+    val placeholderData =
+            WorkoutSession(
+                    sessionId = "preview-session",
+                    userId = "preview-user",
+                    bpm = 180,
+                    distance = 3.1,
+                    time = 30,
+                    calories = 100,
+                    activity = "Running"
+            )
+    CadenceTheme { Box(modifier = Modifier.background(Color.White)) { LogCard(placeholderData) } }
 }

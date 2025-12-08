@@ -6,6 +6,7 @@ plugins {
     id("com.google.gms.google-services")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -20,8 +21,8 @@ android {
 
     defaultConfig {
         applicationId = "com.cs407.cadence"
-        minSdk = 26 //36
-        targetSdk = 34//36
+        minSdk = 31
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -30,6 +31,13 @@ android {
         manifestPlaceholders["spotifyClientId"] = localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""
         manifestPlaceholders["redirectHostName"] = "callback"
         manifestPlaceholders["redirectSchemeName"] = "com.cs407.cadence.auth"
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.cs407.cadence"
+        
+
+        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"${localProperties.getProperty("SPOTIFY_CLIENT_SECRET") ?: ""}\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "ACOUSTID_API_KEY", "\"${localProperties.getProperty("ACOUSTID_API_KEY") ?: ""}\"")
+        buildConfigField("String", "RAPIDAPI_KEY", "\"${localProperties.getProperty("RAPIDAPI_KEY") ?: ""}\"")
 
         //Google Maps API key is added to manifest through a placeholder below.
         //Allows us to keep the key out of version control while
@@ -55,12 +63,26 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation("com.adamratzman:spotify-remote-republish:1.1")
     implementation("com.google.code.gson:gson:2.6.1")
+    
+    // Spotify Web API dependencies
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+        // OAuth and browser authentication
+        implementation("androidx.browser:browser:1.5.0")
+        implementation("net.openid:appauth:0.11.1")
+    
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth-ktx")
@@ -82,15 +104,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.ink.brush)
-    implementation(libs.play.services.auth)
     implementation(libs.androidx.compose.foundation)
-    //Required for GPS tracking functionality -- gives access to device’s location provider
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    //Jetpack Compose wrapper for Google Maps SDK -- allows use of <GoogleMap> inside composables
     implementation("com.google.maps.android:maps-compose:4.1.1")
-    //Core Google Maps library -- needed in order for Google Map tiles can render on MapScreen
     implementation("com.google.android.gms:play-services-maps:18.1.0")
-    implementation(libs.androidx.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

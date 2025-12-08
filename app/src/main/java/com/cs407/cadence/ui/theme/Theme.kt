@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
-import com.cs407.cadence.ui.screens.HomeScreen
 
 // 1. Define your DarkColorScheme
 private val DarkColorScheme = darkColorScheme(
@@ -30,7 +29,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
-// 2. Define your LightColorScheme (renamed from ColorScheme)
+// 2. Define your LightColorScheme
 private val LightColorScheme = lightColorScheme(
     primary = Color.White,
     onPrimary = Color.Black,
@@ -44,7 +43,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun CadenceTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(), // Check system setting
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     // 3. Choose the color scheme dynamically
@@ -58,7 +57,6 @@ fun CadenceTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            // Set status bar icons to be light in dark theme, and dark in light theme
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
