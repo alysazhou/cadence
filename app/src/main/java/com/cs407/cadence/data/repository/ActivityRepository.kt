@@ -1,27 +1,27 @@
 package com.cs407.cadence.data
-data class Activity(
-    val name: String,
-    val description: String,
-    val compatibleGenres: List<String>
-)
+data class Activity(val name: String, val description: String, val compatibleGenres: List<String>)
+
 object ActivityRepository {
-    private val activities = listOf(
-        Activity(
-            name = "Walking",
-            description = "Light and casual",
-            compatibleGenres = listOf("Pop", "Indie", "R&B", "Jazz", "Reggae")
-        ),
-        Activity(
-            name = "Jogging",
-            description = "Steady and energetic",
-            compatibleGenres = listOf("Electronic", "Hip-Hop", "Rock", "Pop", "Funk")
-        ),
-        Activity(
-            name = "Running",
-            description = "Fast-paced and intense",
-            compatibleGenres = listOf("Drum and Bass", "Techno", "Dubstep", "Metal", "Trance")
-        )
-    )
+    private val activities =
+            listOf(
+                    Activity(
+                            name = "Walking",
+                            description = "120-140 BPM",
+                            compatibleGenres = listOf("Pop", "Indie", "R&B", "Jazz", "Reggae")
+                    ),
+                    Activity(
+                            name = "Jogging",
+                            description = "140-160 BPM",
+                            compatibleGenres =
+                                    listOf("Electronic", "Hip-Hop", "Rock", "Pop", "Funk")
+                    ),
+                    Activity(
+                            name = "Running",
+                            description = "160-180 BPM",
+                            compatibleGenres =
+                                    listOf("Drum and Bass", "Techno", "Dubstep", "Metal", "Trance")
+                    )
+            )
 
     fun getAllActivities(): List<Activity> = activities
 

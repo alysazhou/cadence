@@ -2,9 +2,9 @@ package com.cs407.cadence.ui.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cs407.cadence.data.models.WorkoutSession
 import com.cs407.cadence.data.models.RoutePoint
 import com.cs407.cadence.data.models.SessionStatus
+import com.cs407.cadence.data.models.WorkoutSession
 import com.cs407.cadence.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,46 +29,39 @@ class WorkoutViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-
-
     fun startWorkout() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            repository.startSession()
-                .onSuccess { session ->
-                    _currentSession.value = session
-                }
-                .onFailure { e ->
-                    _error.value = e.message
-                }
+            repository
+                    .startSession()
+                    .onSuccess { session -> _currentSession.value = session }
+                    .onFailure { e -> _error.value = e.message }
 
             _isLoading.value = false
         }
     }
-
-
 
     fun updateWorkout(distance: Double, routePoints: List<RoutePoint>, songsPlayed: List<String>) {
         viewModelScope.launch {
             val session = _currentSession.value ?: return@launch
 
             repository.updateSession(
-                sessionId = session.sessionId,
-                distance = distance,
-                routePoints = routePoints,
-                songsPlayed = songsPlayed
-            ).onSuccess {
-                _currentSession.value = session.copy(
-                    distance = distance,
-                    routePoints = routePoints,
-                    songsPlayed = songsPlayed
-                )
-            }
+                            sessionId = session.sessionId,
+                            distance = distance,
+                            routePoints = routePoints,
+                            songsPlayed = songsPlayed
+                    )
+                    .onSuccess {
+                        _currentSession.value =
+                                session.copy(
+                                        distance = distance,
+                                        routePoints = routePoints,
+                                        songsPlayed = songsPlayed
+                                )
+                    }
         }
     }
-
-
 
     fun pauseWorkout() {
         viewModelScope.launch {
@@ -90,66 +83,56 @@ class WorkoutViewModel : ViewModel() {
         }
     }
 
-
     fun endWorkout(
-        time: Int,
-        distance: Double,
-        averagePace: Double,
-        calories: Int,
-        bpm: Int
+            time: Int,
+            distance: Double,
+            averagePace: Double,
+            calories: Int,
+            bpm: Int,
+            playedSongsDetails: List<Map<String, Any?>> = emptyList()
     ) {
         viewModelScope.launch {
-            val session = _currentSession.value ?: run {
-                return@launch
-            }
+            val session =
+                    _currentSession.value
+                            ?: run {
+                                return@launch
+                            }
 
+            repository
+                    .endSession(
+                            sessionId = session.sessionId,
+                            time = time,
+                            distance = distance,
+                            averagePace = averagePace,
+                            calories = calories,
+                            bpm = bpm,
+                            playedSongsDetails = playedSongsDetails
+                    )
+                    .onSuccess {
+                        _currentSession.value = null
 
-            repository.endSession(
-                sessionId = session.sessionId,
-                time = time,
-                distance = distance,
-                averagePace = averagePace,
-                calories = calories,
-                bpm = bpm
-            )
-                .onSuccess {
-
-                    _currentSession.value = null
-
-
-                    loadLastSession()
-                    loadWorkoutHistory()
-                }
-                .onFailure { e ->
-                    _error.value = e.message
-                }
+                        loadLastSession()
+                        loadWorkoutHistory()
+                    }
+                    .onFailure { e -> _error.value = e.message }
         }
     }
-
-
-
 
     fun loadWorkoutHistory() {
         viewModelScope.launch {
-            repository.getAllSessions()
-                .onSuccess { sessions ->
-                    val sorted = sessions.sortedByDescending { session ->
-                        session.endTime?.seconds ?: session.startTime.seconds
-                    }
-                    _workoutHistory.value = sorted
-                }
+            repository.getAllSessions().onSuccess { sessions ->
+                val sorted =
+                        sessions.sortedByDescending { session ->
+                            session.endTime?.seconds ?: session.startTime.seconds
+                        }
+                _workoutHistory.value = sorted
+            }
         }
     }
-
 
     fun loadLastSession() {
-        viewModelScope.launch {
-            repository.getLastSession()
-                .onSuccess { _lastSession.value = it }
-        }
+        viewModelScope.launch { repository.getLastSession().onSuccess { _lastSession.value = it } }
     }
-
-
 
     fun clearAllHistory() {
         viewModelScope.launch {

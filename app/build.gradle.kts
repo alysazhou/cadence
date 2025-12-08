@@ -6,6 +6,7 @@ plugins {
     id("com.google.gms.google-services")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -20,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.cs407.cadence"
-        minSdk = 34
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -32,12 +33,11 @@ android {
         manifestPlaceholders["redirectSchemeName"] = "com.cs407.cadence.auth"
         manifestPlaceholders["appAuthRedirectScheme"] = "com.cs407.cadence"
         
-        // Make Spotify client secret available at runtime
+
         buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"${localProperties.getProperty("SPOTIFY_CLIENT_SECRET") ?: ""}\"")
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${localProperties.getProperty("SPOTIFY_CLIENT_ID") ?: ""}\"")
         buildConfigField("String", "ACOUSTID_API_KEY", "\"${localProperties.getProperty("ACOUSTID_API_KEY") ?: ""}\"")
         buildConfigField("String", "RAPIDAPI_KEY", "\"${localProperties.getProperty("RAPIDAPI_KEY") ?: ""}\"")
-        // TheAudioDB uses API key "2" in the base URL (no BuildConfig needed)
 
         //Google Maps API key is added to manifest through a placeholder below.
         //Allows us to keep the key out of version control while
@@ -81,7 +81,6 @@ dependencies {
         implementation("androidx.browser:browser:1.5.0")
         implementation("net.openid:appauth:0.11.1")
     
-    // Image loading library
     implementation("io.coil-kt:coil-compose:2.5.0")
     
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
@@ -106,11 +105,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.ink.brush)
     implementation(libs.androidx.compose.foundation)
-    //Required for GPS tracking functionality -- gives access to device's location provider
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    //Jetpack Compose wrapper for Google Maps SDK -- allows use of <GoogleMap> inside composables
     implementation("com.google.maps.android:maps-compose:4.1.1")
-    //Core Google Maps library -- needed in order for Google Map tiles can render on MapScreen
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

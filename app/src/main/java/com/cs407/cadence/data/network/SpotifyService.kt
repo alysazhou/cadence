@@ -88,9 +88,8 @@ object SpotifyService {
         Log.d(TAG, "Fetching tracks for genre '$genre' with target BPM '$targetBpm'")
 
         try {
-            // stop background processing and clear previous queue
-            queueManager?.stop()
-            queueManager?.clearQueue()
+            // clear all previous workout state including tracks and queue
+            clearWorkoutState()
 
             // gets large pool of tracks for BPM processing
             val tracks =
@@ -266,6 +265,18 @@ object SpotifyService {
                 ?.setErrorCallback { throwable ->
                     Log.e(TAG, "Error seeking to position: ${throwable.message}")
                 }
+    }
+
+    fun clearWorkoutState() {
+        Log.d(TAG, "Clearing workout state - resetting track, BPM, and queue")
+        _currentTrack.value = null
+        _currentTrackBpm.value = null
+        _playbackPosition.value = 0L
+        _trackDuration.value = 0L
+        trackBpmCache.clear()
+        queueManager?.stop()
+        queueManager?.clearQueue()
+        queueManager = null
     }
 
     fun stopBpmProcessing() {
