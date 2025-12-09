@@ -67,6 +67,8 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
 import com.cs407.cadence.data.network.SpotifyService
+import com.cs407.cadence.data.network.SpotifyWebApiClient
+import com.cs407.cadence.data.SpotifyAuthState
 import com.cs407.cadence.data.repository.WorkoutRepository
 import com.cs407.cadence.data.services.LocationService
 import com.cs407.cadence.data.services.MovementDetectionService
@@ -351,26 +353,80 @@ fun WorkoutScreen(
         val clientSecret = com.cs407.cadence.BuildConfig.SPOTIFY_CLIENT_SECRET
         val redirectUri = "com.cs407.cadence.auth://callback"
 
+        // Check if user has authenticated with OAuth
+        val accessToken = SpotifyAuthState.getAccessToken(context)
+        val hasToken = accessToken != null
+        Log.d("WorkoutScreen", "OAuth token check: hasToken=$hasToken, isAuthenticated=${SpotifyAuthState.isAuthenticated(context)}")
+        
+        if (!hasToken) {
+            Log.e("WorkoutScreen", "No OAuth token found - user must authenticate first")
+            android.widget.Toast.makeText(
+                context,
+                "Please connect Spotify in Settings first (go to Settings → Connect to Spotify)",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        Log.d("WorkoutScreen", "Token found, validating...")
+        // Validate token is still valid
+        val tokenValid = SpotifyWebApiClient.validateToken(context)
+        Log.d("WorkoutScreen", "Token validation result: $tokenValid")
+        
+        if (!tokenValid) {
+            Log.e("WorkoutScreen", "OAuth token invalid or expired")
+            android.widget.Toast.makeText(
+                context,
+                "Spotify authentication expired. Please reconnect in Settings",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            isLoading = false
+            return@LaunchedEffect
+        }
+        
+        Log.d("WorkoutScreen", "✓ OAuth authentication verified")
+
         SpotifyService.buildConnectionParams(clientId, redirectUri, clientSecret)
 
         SpotifyService.connect(
                 context = context,
                 onSuccess = {
-                    Log.d("WorkoutScreen", "Connection successful. Playing BPM-filtered tracks.")
+                    Log.d("WorkoutScreen", "✓ Spotify App Remote connected successfully")
                     scope.launch {
-                        val (minBpm, maxBpm) = getBpmRangeForActivity(selectedActivity)
-                        val targetBpm = (minBpm + maxBpm) / 2
-                        val bpmRange = (maxBpm - minBpm) / 2
-                        SpotifyService.playRecommendedTracks(
+                        try {
+                            val (minBpm, maxBpm) = getBpmRangeForActivity(selectedActivity)
+                            val targetBpm = (minBpm + maxBpm) / 2
+                            val bpmRange = (maxBpm - minBpm) / 2
+                            
+                            Log.d("WorkoutScreen", "Starting music fetch: Genre=$selectedGenre, TargetBPM=$targetBpm, Range=$bpmRange")
+                            
+                            SpotifyService.playRecommendedTracks(
+                                    context,
+                                    selectedGenre,
+                                    targetBpm,
+                                    bpmRange = bpmRange
+                            )
+                            
+                            Log.d("WorkoutScreen", "✓ playRecommendedTracks completed")
+                        } catch (e: Exception) {
+                            Log.e("WorkoutScreen", "Error in playRecommendedTracks: ${e.message}", e)
+                            android.widget.Toast.makeText(
                                 context,
-                                selectedGenre,
-                                targetBpm,
-                                bpmRange = bpmRange
-                        )
+                                "Error fetching music: ${e.message}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                            isLoading = false
+                        }
                     }
                 },
                 onFailure = { throwable ->
-                    Log.e("WorkoutScreen", "Spotify connection failure: ${throwable.message}")
+                    Log.e("WorkoutScreen", "✗ Spotify connection failed: ${throwable.message}", throwable)
+                    android.widget.Toast.makeText(
+                        context,
+                        "Failed to connect to Spotify: ${throwable.message}",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
                     isLoading = false
                 }
         )

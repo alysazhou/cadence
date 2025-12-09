@@ -21,10 +21,13 @@ object SpotifyAuthState {
             putLong(KEY_TOKEN_EXPIRY, expiryTime)
             apply()
         }
+        android.util.Log.d("SpotifyAuthState", "✓ Saved OAuth token (expires in ${expiresInSeconds}s)")
     }
     
     fun getAccessToken(context: Context): String? {
-        return getPrefs(context).getString(KEY_ACCESS_TOKEN, null)
+        val token = getPrefs(context).getString(KEY_ACCESS_TOKEN, null)
+        android.util.Log.d("SpotifyAuthState", "getAccessToken called: ${if (token != null) "token found" else "NO TOKEN"}")
+        return token
     }
     
     fun isAuthenticated(context: Context): Boolean {

@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cs407.cadence.data.network.SpotifyAuthManager
+import android.widget.Toast
+import android.util.Log
 
 @Composable
 fun MusicAuthScreen(
@@ -77,9 +79,34 @@ fun MusicAuthScreen(
                 // CONNECT WITH SPOTIFY
                 Button(
                     onClick = {
-                        activity?.let {
-                            val spotifyAuthManager = SpotifyAuthManager(context)
-                            spotifyAuthManager.startAuth(it)
+                        try {
+                            if (!SpotifyAuthManager.isConfigured()) {
+                                Toast.makeText(
+                                    context,
+                                    "Spotify is not configured. Please add SPOTIFY_CLIENT_ID to local.properties",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                Log.e("MusicAuthScreen", "Spotify Client ID missing from BuildConfig")
+                                return@Button
+                            }
+                            
+                            activity?.let {
+                                val spotifyAuthManager = SpotifyAuthManager(context)
+                                spotifyAuthManager.startAuth(it)
+                            } ?: run {
+                                Toast.makeText(
+                                    context,
+                                    "Unable to start authentication",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MusicAuthScreen", "Error starting Spotify auth", e)
+                            Toast.makeText(
+                                context,
+                                "Error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     },
                     shape = RoundedCornerShape(100.dp),
@@ -95,7 +122,7 @@ fun MusicAuthScreen(
                     )
                 }
 
-                // SKIP
+                // SKIP BUTTON
                 OutlinedButton(
                     shape = RoundedCornerShape(100.dp),
                     onClick = onSkip,

@@ -21,6 +21,10 @@ class SpotifyAuthManager(private val context: Context) {
         const val AUTH_ENDPOINT = "https://accounts.spotify.com/authorize"
         const val TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token"
         const val SCOPES = "user-read-private user-read-email user-library-read user-top-read user-read-playback-state user-modify-playback-state"
+        
+        fun isConfigured(): Boolean {
+            return CLIENT_ID.isNotEmpty() && CLIENT_ID != "null"
+        }
     }
 
     private val serviceConfig = AuthorizationServiceConfiguration(
@@ -31,6 +35,9 @@ class SpotifyAuthManager(private val context: Context) {
     var authState: AuthState? = null
 
     fun getAuthRequest(): AuthorizationRequest {
+        if (!isConfigured()) {
+            throw IllegalStateException("Spotify Client ID not configured. Please add SPOTIFY_CLIENT_ID to local.properties")
+        }
         return AuthorizationRequest.Builder(
             serviceConfig,
             CLIENT_ID,

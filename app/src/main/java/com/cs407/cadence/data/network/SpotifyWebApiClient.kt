@@ -92,15 +92,21 @@ object SpotifyWebApiClient {
         targetBpm: Int,
         bpmRange: Int = 10
     ): List<SpotifyTrack> {
+        Log.d(TAG, "=== getTracksByBpmAndGenre STARTED ===")
+        Log.d(TAG, "Parameters: genre=$genre, targetBpm=$targetBpm, bpmRange=$bpmRange")
+        
         return withContext(Dispatchers.IO) {
             try {
                 val accessToken = getAccessToken(context)
                 if (accessToken == null) {
-                    Log.e(TAG, "Not authenticated with OAuth")
+                    Log.e(TAG, "✗ Not authenticated with OAuth - returning empty list")
                     return@withContext emptyList()
                 }
                 
+                Log.d(TAG, "✓ OAuth token available")
+                
                 val spotifyGenre = mapToSpotifyGenre(genre)
+                Log.d(TAG, "Mapped '$genre' → '$spotifyGenre'")
                 
                 // fetch multiple batches for large track pool
                 val allTracks = mutableListOf<SpotifyTrack>()
@@ -108,11 +114,15 @@ object SpotifyWebApiClient {
                 
                 // randomize pool
                 val randomOffsets = listOf(0, 50, 100, 150, 200, 250).shuffled().take(3)
+                Log.d(TAG, "Will fetch 3 batches at offsets: $randomOffsets")
                 
                 // fetch 3 random batches
                 for (offset in randomOffsets) {
                     try {
+                        Log.d(TAG, "Fetching batch at offset $offset...")
                         val batch = searchTracksByGenre(context, genre, 50, offset)
+                        Log.d(TAG, "  → Got ${batch.size} tracks")
+                        
                         batch.forEach { track ->
                             if (track.id !in seenTrackIds) {
                                 seenTrackIds.add(track.id)
@@ -120,27 +130,29 @@ object SpotifyWebApiClient {
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error fetching batch at offset $offset: ${e.message}")
+                        Log.e(TAG, "✗ Error fetching batch at offset $offset: ${e.message}", e)
                     }
                 }
                 
-                Log.d(TAG, "Fetched ${allTracks.size} unique tracks for background BPM processing")
+                Log.d(TAG, "✓ Fetched ${allTracks.size} unique tracks total")
                 
                 // shuffle tracks to randomize
                 allTracks.shuffle()
+                Log.d(TAG, "✓ Shuffled tracks")
                 
                 // Filter out compilation albums and misclassified tracks
                 val filteredTracks = allTracks.filter { track ->
                     !isLikelyMisclassified(track, genre)
                 }
                 
-                Log.d(TAG, "Filtered to ${filteredTracks.size} tracks after removing compilations/misclassified")
+                Log.d(TAG, "✓ Filtered to ${filteredTracks.size} tracks after removing compilations/misclassified")
+                Log.d(TAG, "=== getTracksByBpmAndGenre COMPLETED - Returning ${filteredTracks.size} tracks ===")
                 
                 // Return shuffled and filtered tracks - BPM filtering will happen in background
                 return@withContext filteredTracks
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Error getting tracks: ${e.message}", e)
+                Log.e(TAG, "✗✗✗ Exception in getTracksByBpmAndGenre: ${e.message}", e)
                 emptyList()
             }
         }

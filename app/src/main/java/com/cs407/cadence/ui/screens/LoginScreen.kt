@@ -212,22 +212,6 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
-
-                // LOGIN WITH SPOTIFY BUTTON
-                Button(
-                    contentPadding = PaddingValues(vertical = 15.dp, horizontal = 30.dp),
-                    onClick = { onSpotifyLogin?.invoke() },
-                    shape = RoundedCornerShape(100.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1DB954), // Spotify green
-                    ),
-                ) {
-                    Text(
-                        text = "Login with Spotify",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                }
             }
         }
     }

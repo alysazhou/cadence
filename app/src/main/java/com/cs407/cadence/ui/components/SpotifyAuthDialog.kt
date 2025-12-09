@@ -11,12 +11,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import android.util.Log
+import com.cs407.cadence.data.network.SpotifyAuthManager
 
 @Composable
 fun SpotifyAuthDialog(
     onConnect: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(8.dp),
@@ -49,7 +55,29 @@ fun SpotifyAuthDialog(
                     // CONNECT TO SPOTIFY
                     Button(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
-                        onClick = onConnect,
+                        onClick = {
+                            try {
+                                if (!SpotifyAuthManager.isConfigured()) {
+                                    Toast.makeText(
+                                        context,
+                                        "Spotify is not configured. Please add SPOTIFY_CLIENT_ID to local.properties",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    Log.e("SpotifyAuthDialog", "Spotify Client ID missing from BuildConfig")
+                                    onDismiss()
+                                    return@Button
+                                }
+                                onConnect()
+                            } catch (e: Exception) {
+                                Log.e("SpotifyAuthDialog", "Error starting Spotify auth", e)
+                                Toast.makeText(
+                                    context,
+                                    "Error: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                onDismiss()
+                            }
+                        },
                         shape = RoundedCornerShape(100.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF1DB954), // Spotify green

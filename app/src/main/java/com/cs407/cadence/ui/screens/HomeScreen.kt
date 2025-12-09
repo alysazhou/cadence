@@ -264,7 +264,7 @@ fun DayCard(modifier: Modifier = Modifier, date: LocalDate, hasWorkout: Boolean,
                     style = MaterialTheme.typography.labelSmall,
                     color = dateColor
             )
-            Text(text = dayOfMonth, style = MaterialTheme.typography.titleLarge, color = dateColor)
+            Text(text = dayOfMonth, style = MaterialTheme.typography.titleMedium, color = dateColor)
 
             Spacer(modifier = Modifier.height(4.dp))
             Icon(
