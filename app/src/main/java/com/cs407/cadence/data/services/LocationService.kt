@@ -161,6 +161,11 @@ object LocationService {
             avgSpeedKmh: Double,
             weightKg: Double = 70.0
     ): Int {
+        // Return 0 calories if not moving
+        if (avgSpeedKmh <= 0.0) {
+            return 0
+        }
+        
         val hours = durationMinutes / 60.0
 
         val met =
