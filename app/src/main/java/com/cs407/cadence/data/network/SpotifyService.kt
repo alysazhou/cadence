@@ -92,10 +92,6 @@ object SpotifyService {
         Log.d(TAG, "Calling SpotifyWebApiClient.getTracksByBpmAndGenre...")
 
         try {
-            // clear all previous workout state including tracks and queue
-            clearWorkoutState()
-            Log.d(TAG, "✓ Cleared previous workout state")
-
             // gets large pool of tracks for BPM processing
             val tracks =
                     SpotifyWebApiClient.getTracksByBpmAndGenre(context, genre, targetBpm, bpmRange)

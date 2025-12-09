@@ -29,12 +29,12 @@ class WorkoutViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    fun startWorkout() {
+    fun startWorkout(activity: String = "Running") {
         viewModelScope.launch {
             _isLoading.value = true
 
             repository
-                    .startSession()
+                    .startSession(activity)
                     .onSuccess { session -> _currentSession.value = session }
                     .onFailure { e -> _error.value = e.message }
 

@@ -42,7 +42,7 @@ interface RapidApiService {
 object RapidApiClient {
     private const val TAG = "RapidApiClient"
     private const val BASE_URL = "https://track-analysis.p.rapidapi.com/"
-    private const val RATE_LIMIT_DELAY_MS = 500L
+    private const val RATE_LIMIT_DELAY_MS = 200L
 
     private var apiKey: String = ""
     private var lastRequestTime = 0L

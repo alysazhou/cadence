@@ -123,12 +123,21 @@ fun WorkoutScreen(
     LaunchedEffect(Unit) {
         wasAutoPaused = false
         isCurrentlyMoving = true
+        // When auto-stop is enabled, start in resumed state even if stationary
+        // The auto-pause will kick in after 3 seconds if still stationary
+        if (autoStopEnabled) {
+            Log.d("WorkoutScreen", "Auto-stop enabled: starting in resumed state, will check for movement after 3s")
+        }
     }
 
     Log.d("WorkoutScreen", "State - wasAutoPaused: $wasAutoPaused, isPaused: $isPaused")
 
-    // initialize services
+    // initialize services and start workout session
     LaunchedEffect(Unit) {
+        // Start the workout session in Firebase with selected activity
+        workoutViewModel.startWorkout(selectedActivity)
+        Log.d("WorkoutScreen", "Started workout session with activity: $selectedActivity")
+        
         StepCounterService.initialize(context)
         MovementDetectionService.initialize(context)
 
@@ -143,13 +152,12 @@ fun WorkoutScreen(
         lastMovementTime = System.currentTimeMillis()
     }
 
-    // step counting
-    LaunchedEffect(isPaused) {
-        Log.d("WorkoutScreen", "Step counting LaunchedEffect triggered (isPaused: $isPaused)")
+    // step counting - runs continuously throughout workout (even when paused)
+    LaunchedEffect(Unit) {
         val available = StepCounterService.isAvailable(context)
         Log.d("WorkoutScreen", "Step counter available: $available")
 
-        if (!isPaused && available) {
+        if (available) {
             Log.d("WorkoutScreen", "Starting step counter...")
             StepCounterService.resetSteps()
             StepCounterService.startCounting(context).collect { update ->
@@ -158,10 +166,7 @@ fun WorkoutScreen(
                 Log.d("WorkoutScreen", "Steps: ${update.steps}, Distance: ${distanceMeters}m")
             }
         } else {
-            Log.d(
-                    "WorkoutScreen",
-                    "Step counter NOT started (isPaused: $isPaused, available: $available)"
-            )
+            Log.d("WorkoutScreen", "Step counter not available on this device")
         }
     }
 
@@ -391,6 +396,10 @@ fun WorkoutScreen(
         }
 
         Log.d("WorkoutScreen", "✓ OAuth authentication verified")
+
+        // Clear previous workout state before starting new workout
+        SpotifyService.clearWorkoutState()
+        Log.d("WorkoutScreen", "Cleared previous workout state before connecting")
 
         SpotifyService.buildConnectionParams(clientId, redirectUri, clientSecret)
 
@@ -829,7 +838,7 @@ fun MusicCard(
                         Modifier.padding(top = 20.dp, bottom = 10.dp).fillMaxWidth().height(20.dp),
                 contentAlignment = Alignment.CenterStart
         ) {
-            val maxWidth = maxWidth - 40.dp
+            val trackWidth = maxWidth
 
             // Background track
             Box(
@@ -856,7 +865,7 @@ fun MusicCard(
             // Progress indicator
             Box(
                     modifier =
-                            Modifier.offset(x = (maxWidth * progress) - 6.dp)
+                            Modifier.offset(x = (trackWidth * progress) - 6.dp)
                                     .size(12.dp)
                                     .background(
                                             MaterialTheme.colorScheme.onPrimary,

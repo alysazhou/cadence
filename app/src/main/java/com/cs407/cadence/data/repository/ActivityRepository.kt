@@ -6,18 +6,18 @@ object ActivityRepository {
             listOf(
                     Activity(
                             name = "Walking",
-                            description = "120-140 BPM",
+                            description = "100-120 BPM",
                             compatibleGenres = listOf("Pop", "Indie", "R&B", "Jazz", "Reggae")
                     ),
                     Activity(
                             name = "Jogging",
-                            description = "140-160 BPM",
+                            description = "120-140 BPM",
                             compatibleGenres =
                                     listOf("Electronic", "Hip-Hop", "Rock", "Pop", "Funk")
                     ),
                     Activity(
                             name = "Running",
-                            description = "160-180 BPM",
+                            description = "140-160 BPM",
                             compatibleGenres =
                                     listOf("Drum and Bass", "Techno", "Dubstep", "Metal", "Trance")
                     )

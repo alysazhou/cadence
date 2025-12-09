@@ -30,7 +30,7 @@ class WorkoutRepository {
     }
 
     /** Creates a brand new workout session. */
-    suspend fun startSession(): Result<WorkoutSession> {
+    suspend fun startSession(activity: String = "Running"): Result<WorkoutSession> {
         return try {
             val userId = getCurrentUserId()
 
@@ -41,6 +41,7 @@ class WorkoutRepository {
                     WorkoutSession(
                             sessionId = sessionRef.id,
                             userId = userId,
+                            activity = activity,
                             startTime = Timestamp.now(),
                             status = SessionStatus.ACTIVE.name
                     )
