@@ -355,25 +355,24 @@ fun SettingsScreen(
                     )
                     Switch(
                             modifier = Modifier.scale(0.7f),
-                                checked = autoStopEnabled,
-                                onCheckedChange = {
-                                    autoStopEnabled = it
-                                    AppSettings.setAutoStopEnabled(context, it)
-                                },
-                                colors =
-                                        SwitchDefaults.colors(
-                                                uncheckedBorderColor = Color.Transparent,
-                                                uncheckedThumbColor =
-                                                        MaterialTheme.colorScheme.onSecondary,
-                                                uncheckedTrackColor =
-                                                        MaterialTheme.colorScheme.onPrimary.copy(
-                                                                alpha = 0.2f
-                                                        ),
-                                                checkedThumbColor =
-                                                        MaterialTheme.colorScheme.onSecondary,
-                                                checkedTrackColor =
-                                                        MaterialTheme.colorScheme.secondary
-                                        )
+                            checked = autoStopEnabled,
+                            onCheckedChange = {
+                                autoStopEnabled = it
+                                AppSettings.setAutoStopEnabled(context, it)
+                            },
+                            colors =
+                                    SwitchDefaults.colors(
+                                            uncheckedBorderColor = Color.Transparent,
+                                            uncheckedThumbColor =
+                                                    MaterialTheme.colorScheme.onSecondary,
+                                            uncheckedTrackColor =
+                                                    MaterialTheme.colorScheme.onPrimary.copy(
+                                                            alpha = 0.2f
+                                                    ),
+                                            checkedThumbColor =
+                                                    MaterialTheme.colorScheme.onSecondary,
+                                            checkedTrackColor = MaterialTheme.colorScheme.secondary
+                                    )
                     )
                 }
             }

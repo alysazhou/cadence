@@ -82,7 +82,7 @@ object SpotifyService {
     ) {
         Log.d(TAG, "=== playRecommendedTracks STARTED ===")
         Log.d(TAG, "Parameters: genre=$genre, targetBpm=$targetBpm, bpmRange=$bpmRange")
-        
+
         if (spotifyAppRemote == null || spotifyAppRemote?.isConnected == false) {
             Log.e(TAG, "✗ NOT CONNECTED to Spotify App Remote")
             return
@@ -113,10 +113,10 @@ object SpotifyService {
                 for (track in tracks) {
                     checkedCount++
                     Log.d(TAG, "Checking track $checkedCount/${tracks.size}: '${track.name}'")
-                    
+
                     val bpm = RapidApiClient.getTrackBpm(track.id)
                     Log.d(TAG, "  → RapidAPI returned BPM: $bpm")
-                    
+
                     if (bpm != null && bpm in minBpm..maxBpm) {
                         firstMatchingTrack = track
                         trackBpmCache[track.id] = bpm
@@ -143,16 +143,26 @@ object SpotifyService {
                                 setupTrackEndListener()
                             }
                             ?.setErrorCallback { throwable ->
-                                Log.e(TAG, "✗✗✗ Error playing track: ${throwable.message}", throwable)
+                                Log.e(
+                                        TAG,
+                                        "✗✗✗ Error playing track: ${throwable.message}",
+                                        throwable
+                                )
                             }
 
                     // start BPM matching additional tracks in the background
                     val remainingTracks = tracks.filter { it.id != firstMatchingTrack.id }
-                    Log.d(TAG, "Starting background BPM processing for ${remainingTracks.size} remaining tracks")
+                    Log.d(
+                            TAG,
+                            "Starting background BPM processing for ${remainingTracks.size} remaining tracks"
+                    )
                     queueManager = BpmTrackQueueManager(context, targetBpm, bpmRange)
                     queueManager?.startProcessing(remainingTracks)
                 } else {
-                    Log.w(TAG, "✗ No tracks found with matching BPM after checking $checkedCount tracks")
+                    Log.w(
+                            TAG,
+                            "✗ No tracks found with matching BPM after checking $checkedCount tracks"
+                    )
                     Log.w(TAG, "Falling back to genre station")
                     playGenreStation(genre)
                 }
@@ -164,7 +174,7 @@ object SpotifyService {
             Log.e(TAG, "✗✗✗ Exception in playRecommendedTracks: ${e.message}", e)
             playGenreStation(genre)
         }
-        
+
         Log.d(TAG, "=== playRecommendedTracks COMPLETED ===")
     }
 
