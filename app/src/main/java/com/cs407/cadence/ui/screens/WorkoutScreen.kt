@@ -686,6 +686,7 @@ fun WorkoutScreen(
                                                     averagePace = averagePace,
                                                     calories = calories,
                                                     bpm = averageBpm,
+                                                    activity = selectedActivity,
                                                     playedSongsDetails = playedSongsAsMap
                                             )
                                         }
