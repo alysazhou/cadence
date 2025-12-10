@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,6 +45,7 @@ import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.WorkoutViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.material.icons.filled.Delete
 
 @Composable
 fun LogScreen(
@@ -61,7 +63,10 @@ fun LogScreen(
             topBar = {
                 Box(
                         modifier =
-                                Modifier.fillMaxWidth().height(80.dp).padding(horizontal = 10.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(80.dp)
+                                    .padding(horizontal = 10.dp),
                         contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -72,7 +77,10 @@ fun LogScreen(
                 }
             }
     ) { innerPadding ->
-        Box(modifier = modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 20.dp)) {
+        Box(modifier = modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .padding(horizontal = 20.dp)) {
             if (isLoading) {
 
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -119,7 +127,8 @@ fun LogScreen(
                     item {
                         MostRecentActivityCard(
                                 workoutSession = workoutHistory.first(),
-                                onClick = { onNavigateToWorkoutSummary(workoutHistory.first()) }
+                                onClick = { onNavigateToWorkoutSummary(workoutHistory.first()) },
+                                onDelete = { workoutViewModel.deleteWorkout(workoutHistory.first().sessionId)}
                         )
                     }
 
@@ -135,7 +144,8 @@ fun LogScreen(
                         items(workoutHistory.drop(1)) { workout ->
                             LogCard(
                                     workoutSession = workout,
-                                    onClick = { onNavigateToWorkoutSummary(workout) }
+                                    onClick = { onNavigateToWorkoutSummary(workout) },
+                                    onDelete = { workoutViewModel.deleteWorkout(workout.sessionId)}
                             )
                         }
                     }
@@ -148,12 +158,13 @@ fun LogScreen(
 }
 
 @Composable
-fun LogCard(workoutSession: WorkoutSession, onClick: () -> Unit = {}) {
+fun LogCard(workoutSession: WorkoutSession, onClick: () -> Unit = {}, onDelete: () -> Unit = {}) {
     Box(
             modifier =
-                    Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(20.dp)
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -197,6 +208,14 @@ fun LogCard(workoutSession: WorkoutSession, onClick: () -> Unit = {}) {
                 }
             }
 
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete, // Import if needed
+                    contentDescription = "Delete workout",
+                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                )
+            }
+
             androidx.compose.material3.IconButton(onClick = onClick) {
                 Icon(
                         imageVector =
@@ -214,16 +233,20 @@ fun LogCard(workoutSession: WorkoutSession, onClick: () -> Unit = {}) {
 fun MostRecentActivityCard(
         modifier: Modifier = Modifier,
         workoutSession: WorkoutSession,
-        onClick: () -> Unit = {}
+        onClick: () -> Unit = {},
+        onDelete: () -> Unit = {}
 ) {
     Box(
             modifier =
-                    Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(20.dp)
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(20.dp)
     ) {
         Column(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {

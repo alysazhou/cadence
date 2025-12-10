@@ -89,6 +89,7 @@ class WorkoutViewModel : ViewModel() {
             averagePace: Double,
             calories: Int,
             bpm: Int,
+            activity: String,
             playedSongsDetails: List<Map<String, Any?>> = emptyList()
     ) {
         viewModelScope.launch {
@@ -106,6 +107,7 @@ class WorkoutViewModel : ViewModel() {
                             averagePace = averagePace,
                             calories = calories,
                             bpm = bpm,
+                            activity = activity,
                             playedSongsDetails = playedSongsDetails
                     )
                     .onSuccess {
@@ -142,6 +144,15 @@ class WorkoutViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteWorkout(sessionId: String) {
+        viewModelScope.launch {
+            repository.deleteWorkoutById(sessionId).onSuccess {
+                loadWorkoutHistory()
+            }
+        }
+    }
+
 
     fun deleteSessions(ids: List<String>) {
         viewModelScope.launch {

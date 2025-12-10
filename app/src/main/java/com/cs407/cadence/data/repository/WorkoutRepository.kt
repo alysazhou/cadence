@@ -1,5 +1,6 @@
 package com.cs407.cadence.data.repository
 
+import com.cs407.cadence.data.Activity
 import com.cs407.cadence.data.models.RoutePoint
 import com.cs407.cadence.data.models.SessionStatus
 import com.cs407.cadence.data.models.WorkoutSession
@@ -129,6 +130,7 @@ class WorkoutRepository {
             distance: Double,
             averagePace: Double,
             calories: Int,
+            activity: String,
             bpm: Int,
             playedSongsDetails: List<Map<String, Any?>> = emptyList()
     ): Result<Unit> {
@@ -153,6 +155,7 @@ class WorkoutRepository {
                             "averagePace" to averagePace,
                             "calories" to calories,
                             "bpm" to bpm,
+                            "activity" to activity,
                             "endTime" to endTime,
                             "status" to SessionStatus.COMPLETED.name,
                             "date" to formattedDate,
@@ -239,6 +242,7 @@ class WorkoutRepository {
         }
     }
 
+
     /** Deletes selected sessions. */
     suspend fun deleteSessions(sessionIds: List<String>): Result<Unit> {
         return try {
@@ -263,6 +267,28 @@ class WorkoutRepository {
             Result.failure(e)
         }
     }
+
+
+    /** Deletes a single workout session by its ID. */
+    suspend fun deleteWorkoutById(sessionId: String): Result<Unit> {
+        return try {
+            val userId = getCurrentUserId()
+            firestore
+                .collection("users")
+                .document(userId)
+                .collection("sessions")
+                .document(sessionId)
+                .delete()
+                .await()
+
+            println("Deleted session: $sessionId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("Error deleting session: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
 
     /** Deletes all sessions for this user. */
     suspend fun deleteAllSessions(): Result<Unit> {

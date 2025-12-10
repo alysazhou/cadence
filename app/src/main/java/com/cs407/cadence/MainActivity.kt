@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -21,15 +22,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.cs407.cadence.data.SpotifyAuthState
 import com.cs407.cadence.data.network.SpotifyAuthManager
 import com.cs407.cadence.data.repository.WorkoutRepository
@@ -47,6 +55,10 @@ import com.cs407.cadence.ui.screens.WorkoutSetupScreen
 import com.cs407.cadence.ui.theme.CadenceTheme
 import com.cs407.cadence.ui.viewModels.UserViewModel
 import com.cs407.cadence.ui.viewModels.WorkoutViewModel
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+
 
 class MainActivity : ComponentActivity() {
     private val userViewModel: UserViewModel by viewModels()
@@ -145,6 +157,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun CadenceApp(
         userViewModel: UserViewModel,
@@ -153,8 +166,7 @@ fun CadenceApp(
         onSpotifyLogin: (() -> Unit)? = null
 ) {
     val userState by userViewModel.userState.collectAsStateWithLifecycle()
-    val navController = rememberNavController()
-
+    val navController = rememberAnimatedNavController()
     var showSplash by remember { mutableStateOf(true) }
     var isSpotifyAuthenticated by remember {
         mutableStateOf(SpotifyAuthState.isAuthenticated(navController.context))
@@ -192,11 +204,44 @@ fun CadenceApp(
                     }
                 }
         ) { innerPadding ->
-            NavHost(
-                    navController = navController,
-                    startDestination = "login",
-                    modifier = Modifier.padding(innerPadding)
+            AnimatedNavHost(
+                navController = navController,
+                startDestination = "login",
+                modifier = Modifier.padding(innerPadding),
+
+                enterTransition = {
+                    val from = initialState.destination.route
+                    val to = targetState.destination.route
+
+                    // Disable global animation specifically for workoutResults -> home
+                    if (from == "workoutResults" && to?.startsWith("home") == true) {
+                        EnterTransition.None
+                    } else {
+                        slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth })
+                    }
+                },
+
+                exitTransition = {
+                    val from = initialState.destination.route
+                    val to = targetState.destination.route
+
+                    if (from == "workoutResults" && to?.startsWith("home") == true) {
+                        ExitTransition.None
+                    } else {
+                        slideOutHorizontally(targetOffsetX = { fullWidth -> -fullWidth })
+                    }
+                },
+
+                popEnterTransition = {
+                    slideInHorizontally(initialOffsetX = { fullWidth -> -fullWidth })
+                },
+
+                popExitTransition = {
+                    slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth })
+                }
             ) {
+
+
                 composable("login") {
                     LoginScreen(viewModel = userViewModel, onSpotifyLogin = onSpotifyLogin)
                 }
@@ -228,7 +273,34 @@ fun CadenceApp(
                     )
                 }
 
-                composable("home") {
+                composable(
+                    route = "home",
+
+                    // 🔥 Handle forward navigation from workoutResults → home (Done button)
+                    enterTransition = {
+                        if (initialState.destination.route == "workoutResults") {
+                            slideInHorizontally(
+                                initialOffsetX = { fullWidth -> -fullWidth }, // home slides in from left
+                                animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(200))
+                        } else null
+                    },
+
+                    // 🔥 Handle back navigation (just in case)
+                    popEnterTransition = {
+                        if (initialState.destination.route == "workoutResults") {
+                            slideInHorizontally(
+                                initialOffsetX = { fullWidth -> -fullWidth },
+                                animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(200))
+                        } else null
+                    },
+
+                    // Optional fade when leaving home
+                    popExitTransition = {
+                        fadeOut(animationSpec = tween(150))
+                    }
+                ) {
                     Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.background
@@ -310,71 +382,125 @@ fun CadenceApp(
                     )
                 }
 
-                composable("workoutResults") {
-                    val previousBackStackEntry = navController.previousBackStackEntry
+                composable(
+                    route = "workoutResults",
+                    // From stop workout button -> workout summary: slide UP from bottom
+                    enterTransition = {
+                        slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight }, // below screen
+                            animationSpec = tween(
+                                durationMillis = 300,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    // From workout summary Done → home
+                    // SUMMARY drifts slightly right + fades out
+                    exitTransition = {
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> fullWidth / 3 },   // only drift a bit to the right
+                            animationSpec = tween(
+                                durationMillis = 260,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + fadeOut(animationSpec = tween(200))
+                    }
+                ) {
+
+                val previousBackStackEntry = navController.previousBackStackEntry
                     val time =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_time") ?: 0
+                        previousBackStackEntry?.savedStateHandle?.get<Int>("workout_time") ?: 0
                     val distance =
-                            previousBackStackEntry?.savedStateHandle?.get<Double>(
-                                    "workout_distance"
-                            )
-                                    ?: 0.0
+                        previousBackStackEntry?.savedStateHandle?.get<Double>(
+                            "workout_distance"
+                        )
+                            ?: 0.0
                     val calories =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_calories")
-                                    ?: 0
+                        previousBackStackEntry?.savedStateHandle?.get<Int>("workout_calories")
+                            ?: 0
                     val avgBpm =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_bpm") ?: 0
+                        previousBackStackEntry?.savedStateHandle?.get<Int>("workout_bpm") ?: 0
                     val songs =
-                            previousBackStackEntry?.savedStateHandle?.get<
-                                    ArrayList<com.cs407.cadence.data.models.PlayedSong>>(
-                                    "workout_songs"
-                            )
-                                    ?: arrayListOf()
+                        previousBackStackEntry?.savedStateHandle?.get<
+                                ArrayList<com.cs407.cadence.data.models.PlayedSong>>(
+                            "workout_songs"
+                        )
+                            ?: arrayListOf()
 
                     WorkoutResultsScreen(
-                            time = time,
-                            distance = distance,
-                            calories = calories,
-                            averageBpm = avgBpm,
-                            playedSongs = songs,
-                            onDone = {
-                                navController.navigate("home") {
-                                    popUpTo("home") { inclusive = false }
-                                }
+                        time = time,
+                        distance = distance,
+                        calories = calories,
+                        averageBpm = avgBpm,
+                        playedSongs = songs,
+                        onDone = {
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = false }
                             }
+                        }
                     )
                 }
 
-                composable("workoutSummaryFromLog") {
+
+
+
+                composable(
+                    route = "workoutSummaryFromLog/{sessionId}",
+                    arguments = listOf(
+                        navArgument("sessionId") { type = NavType.StringType }
+                    ),
+                    // Log -> Summary
+                    enterTransition = {
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    exitTransition = {
+                        // if this screen ever navigates forward to something else
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(250))
+                    },
+                    // Summary -> Log (back)
+                    popEnterTransition = {
+                        // log screen comes in gently from the left & fades in
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(250))
+                    },
+                    popExitTransition = {
+                        // summary slides to the right & fades out
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                ) {
                     val previousBackStackEntry = navController.previousBackStackEntry
-                    val time =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_time") ?: 0
-                    val distance =
-                            previousBackStackEntry?.savedStateHandle?.get<Double>(
-                                    "workout_distance"
-                            )
-                                    ?: 0.0
-                    val calories =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_calories")
-                                    ?: 0
-                    val avgBpm =
-                            previousBackStackEntry?.savedStateHandle?.get<Int>("workout_bpm") ?: 0
+                    val savedStateHandle = previousBackStackEntry?.savedStateHandle
+
+                    val time = savedStateHandle?.get<Int>("workout_time") ?: 0
+                    val distance = savedStateHandle?.get<Double>("workout_distance") ?: 0.0
+                    val calories = savedStateHandle?.get<Int>("workout_calories") ?: 0
+                    val avgBpm = savedStateHandle?.get<Int>("workout_bpm") ?: 0
                     val songs =
-                            previousBackStackEntry?.savedStateHandle?.get<
-                                    ArrayList<com.cs407.cadence.data.models.PlayedSong>>(
-                                    "workout_songs"
-                            )
-                                    ?: arrayListOf()
+                        savedStateHandle?.get<ArrayList<com.cs407.cadence.data.models.PlayedSong>>("workout_songs")
+                            ?: arrayListOf()
 
                     WorkoutSummaryFromLogScreen(
-                            time = time,
-                            distance = distance,
-                            calories = calories,
-                            averageBpm = avgBpm,
-                            playedSongs = songs,
-                            onBack = { navController.popBackStack() }
+                        time = time,
+                        distance = distance,
+                        calories = calories,
+                        averageBpm = avgBpm,
+                        playedSongs = songs,
+                        onBack = { navController.popBackStack() }
                     )
                 }
+
+
 
                 composable("log") {
                     LogScreen(
@@ -417,7 +543,7 @@ fun CadenceApp(
                                         "workout_songs",
                                         ArrayList(playedSongs)
                                 )
-                                navController.navigate("workoutSummaryFromLog")
+                                navController.navigate("workoutSummaryFromLog/${session.sessionId}")
                             }
                     )
                 }
