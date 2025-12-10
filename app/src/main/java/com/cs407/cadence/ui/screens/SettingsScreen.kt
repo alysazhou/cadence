@@ -337,49 +337,43 @@ fun SettingsScreen(
                 }
 
                 // TOGGLES SECTION (MOVED INSIDE MUSIC COLUMN)
-                Column(
+                Row(
                         modifier =
-                                Modifier.clip(RoundedCornerShape(8.dp))
+                                Modifier.fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(MaterialTheme.colorScheme.surface)
-                                        .padding(horizontal = 10.dp, vertical = 10.dp)
-                                        .padding(start = 10.dp, end = 5.dp)
+                                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
                     // AUTO-STOP
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                                text = "Auto-stop on stop",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                                modifier = Modifier.scale(0.8f),
-                                checked = autoStopEnabled,
-                                onCheckedChange = {
-                                    autoStopEnabled = it
-                                    AppSettings.setAutoStopEnabled(context, it)
-                                },
-                                colors =
-                                        SwitchDefaults.colors(
-                                                uncheckedBorderColor = Color.Transparent,
-                                                uncheckedThumbColor =
-                                                        MaterialTheme.colorScheme.onSecondary,
-                                                uncheckedTrackColor =
-                                                        MaterialTheme.colorScheme.onPrimary.copy(
-                                                                alpha = 0.2f
-                                                        ),
-                                                checkedThumbColor =
-                                                        MaterialTheme.colorScheme.onSecondary,
-                                                checkedTrackColor =
-                                                        MaterialTheme.colorScheme.secondary
-                                        )
-                        )
-                    }
+                    Text(
+                            text = "Auto-stop on stop",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                            modifier = Modifier.scale(0.7f),
+                            checked = autoStopEnabled,
+                            onCheckedChange = {
+                                autoStopEnabled = it
+                                AppSettings.setAutoStopEnabled(context, it)
+                            },
+                            colors =
+                                    SwitchDefaults.colors(
+                                            uncheckedBorderColor = Color.Transparent,
+                                            uncheckedThumbColor =
+                                                    MaterialTheme.colorScheme.onSecondary,
+                                            uncheckedTrackColor =
+                                                    MaterialTheme.colorScheme.onPrimary.copy(
+                                                            alpha = 0.2f
+                                                    ),
+                                            checkedThumbColor =
+                                                    MaterialTheme.colorScheme.onSecondary,
+                                            checkedTrackColor = MaterialTheme.colorScheme.secondary
+                                    )
+                    )
                 }
             }
 
@@ -396,7 +390,7 @@ fun SettingsScreen(
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(MaterialTheme.colorScheme.surface)
                                         .clickable { showClearLogDialog = true }
-                                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                                        .padding(horizontal = 20.dp, vertical = 15.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                 ) {

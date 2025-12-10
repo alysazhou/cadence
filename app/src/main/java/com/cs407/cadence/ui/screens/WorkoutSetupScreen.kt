@@ -22,10 +22,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.data.Activity
@@ -59,19 +62,38 @@ fun WorkoutSetupScreen(
     val activity = context as? android.app.Activity
     val coroutineScope = rememberCoroutineScope()
     var showSpotifyAuthDialog by remember { mutableStateOf(false) }
+    var authDialogShowing by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Monitor lifecycle and dismiss dialog when user returns authenticated
+    DisposableEffect(lifecycleOwner, authDialogShowing) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && authDialogShowing) {
+                if (SpotifyAuthState.isAuthenticated(context)) {
+                    showSpotifyAuthDialog = false
+                    authDialogShowing = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // DIALOGS
 
     if (showSpotifyAuthDialog) {
         SpotifyAuthDialog(
                 onConnect = {
-                    showSpotifyAuthDialog = false
-                    activity?.let {
+                    authDialogShowing = true
+                    activity?.let { act ->
                         val spotifyAuthManager = SpotifyAuthManager(context)
-                        spotifyAuthManager.startAuth(it)
+                        spotifyAuthManager.startAuth(act)
                     }
                 },
-                onDismiss = { showSpotifyAuthDialog = false }
+                onDismiss = {
+                    showSpotifyAuthDialog = false
+                    authDialogShowing = false
+                }
         )
     }
 

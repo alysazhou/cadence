@@ -1,47 +1,48 @@
 package com.cs407.cadence.data.network
 
 import android.content.Context
-import android.util.Base64
 import android.util.Log
 import com.cs407.cadence.data.SpotifyAuthState
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
 
 object SpotifyWebApiClient {
     private const val TAG = "SpotifyWebApiClient"
     private const val BASE_URL = "https://api.spotify.com/"
     private const val ACCOUNTS_BASE_URL = "https://accounts.spotify.com/"
-    
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-    
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
-    
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-    
-    private val accountsRetrofit = Retrofit.Builder()
-        .baseUrl(ACCOUNTS_BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-    
+
+    private val loggingInterceptor =
+            HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+
+    private val okHttpClient =
+            OkHttpClient.Builder()
+                    .addInterceptor(loggingInterceptor)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
+
+    private val retrofit =
+            Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .client(okHttpClient)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+
+    private val accountsRetrofit =
+            Retrofit.Builder()
+                    .baseUrl(ACCOUNTS_BASE_URL)
+                    .client(okHttpClient)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+
     private val api: SpotifyWebApi = retrofit.create(SpotifyWebApi::class.java)
     private val accountsApi: SpotifyWebApi = accountsRetrofit.create(SpotifyWebApi::class.java)
-    
+
     // get access token from oauth
     private fun getAccessToken(context: Context): String? {
         val token = SpotifyAuthState.getAccessToken(context)
@@ -52,7 +53,7 @@ object SpotifyWebApiClient {
         }
         return token
     }
-    
+
     // validate if access token is working
     suspend fun validateToken(context: Context): Boolean {
         return withContext(Dispatchers.IO) {
@@ -71,7 +72,7 @@ object SpotifyWebApiClient {
             }
         }
     }
-    
+
     // map app genres to spotify seed genres
     private fun mapToSpotifyGenre(genre: String): String {
         return when (genre.lowercase()) {
@@ -84,35 +85,45 @@ object SpotifyWebApiClient {
             else -> "edm" // default fallback
         }
     }
-    
+
     // get tracks filtered by bpm range and genre
     suspend fun getTracksByBpmAndGenre(
-        context: Context,
-        genre: String,
-        targetBpm: Int,
-        bpmRange: Int = 10
+            context: Context,
+            genre: String,
+            targetBpm: Int,
+            bpmRange: Int = 10
     ): List<SpotifyTrack> {
+        Log.d(TAG, "=== getTracksByBpmAndGenre STARTED ===")
+        Log.d(TAG, "Parameters: genre=$genre, targetBpm=$targetBpm, bpmRange=$bpmRange")
+
         return withContext(Dispatchers.IO) {
             try {
                 val accessToken = getAccessToken(context)
                 if (accessToken == null) {
-                    Log.e(TAG, "Not authenticated with OAuth")
+                    Log.e(TAG, "✗ Not authenticated with OAuth - returning empty list")
                     return@withContext emptyList()
                 }
-                
+
+                Log.d(TAG, "✓ OAuth token available")
+
                 val spotifyGenre = mapToSpotifyGenre(genre)
-                
+                Log.d(TAG, "Mapped '$genre' → '$spotifyGenre'")
+
                 // fetch multiple batches for large track pool
                 val allTracks = mutableListOf<SpotifyTrack>()
                 val seenTrackIds = mutableSetOf<String>()
-                
+
                 // randomize pool
                 val randomOffsets = listOf(0, 50, 100, 150, 200, 250).shuffled().take(3)
-                
+                Log.d(TAG, "Will fetch 3 batches at offsets: $randomOffsets")
+
                 // fetch 3 random batches
                 for (offset in randomOffsets) {
                     try {
+                        Log.d(TAG, "Fetching batch at offset $offset...")
                         val batch = searchTracksByGenre(context, genre, 50, offset)
+                        Log.d(TAG, "  → Got ${batch.size} tracks")
+
                         batch.forEach { track ->
                             if (track.id !in seenTrackIds) {
                                 seenTrackIds.add(track.id)
@@ -120,86 +131,93 @@ object SpotifyWebApiClient {
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error fetching batch at offset $offset: ${e.message}")
+                        Log.e(TAG, "✗ Error fetching batch at offset $offset: ${e.message}", e)
                     }
                 }
-                
-                Log.d(TAG, "Fetched ${allTracks.size} unique tracks for background BPM processing")
-                
+
+                Log.d(TAG, "✓ Fetched ${allTracks.size} unique tracks total")
+
                 // shuffle tracks to randomize
                 allTracks.shuffle()
-                
+                Log.d(TAG, "✓ Shuffled tracks")
+
                 // Filter out compilation albums and misclassified tracks
-                val filteredTracks = allTracks.filter { track ->
-                    !isLikelyMisclassified(track, genre)
-                }
-                
-                Log.d(TAG, "Filtered to ${filteredTracks.size} tracks after removing compilations/misclassified")
-                
+                val filteredTracks =
+                        allTracks.filter { track -> !isLikelyMisclassified(track, genre) }
+
+                Log.d(
+                        TAG,
+                        "✓ Filtered to ${filteredTracks.size} tracks after removing compilations/misclassified"
+                )
+                Log.d(
+                        TAG,
+                        "=== getTracksByBpmAndGenre COMPLETED - Returning ${filteredTracks.size} tracks ==="
+                )
+
                 // Return shuffled and filtered tracks - BPM filtering will happen in background
                 return@withContext filteredTracks
-                
             } catch (e: Exception) {
-                Log.e(TAG, "Error getting tracks: ${e.message}", e)
+                Log.e(TAG, "✗✗✗ Exception in getTracksByBpmAndGenre: ${e.message}", e)
                 emptyList()
             }
         }
     }
-    
+
     private fun isLikelyMisclassified(track: SpotifyTrack, requestedGenre: String): Boolean {
         val albumName = track.album.name.lowercase()
         val trackName = track.name.lowercase()
         val artistName = track.artists.firstOrNull()?.name?.lowercase() ?: ""
-        
+
         // filter out compilation albums (gets better genre results)
-        if (albumName.contains("compilation") || 
-            albumName.contains("various artists") ||
-            albumName.contains("mixed by") ||
-            albumName.contains("dj mix")) {
+        if (albumName.contains("compilation") ||
+                        albumName.contains("various artists") ||
+                        albumName.contains("mixed by") ||
+                        albumName.contains("dj mix")
+        ) {
             return true
         }
-        
-        val suspiciousKeywords = listOf(
-            "chiptune", "8-bit", "remix compilation", "megamix"
-        )
-        
+
+        val suspiciousKeywords = listOf("chiptune", "8-bit", "remix compilation", "megamix")
+
         if (suspiciousKeywords.any { trackName.contains(it) || albumName.contains(it) }) {
             return true
         }
         return false
     }
-    
+
     // simple genre-based search fallback
     private suspend fun searchTracksByGenre(
-        context: Context, 
-        genre: String, 
-        limit: Int = 50, 
-        offset: Int = 0
+            context: Context,
+            genre: String,
+            limit: Int = 50,
+            offset: Int = 0
     ): List<SpotifyTrack> {
         try {
             val accessToken = getAccessToken(context) ?: return emptyList()
             val spotifyGenre = mapToSpotifyGenre(genre)
-            
+
             // Vary the year range to get different tracks each time
             val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-            val yearRanges = listOf(
-                "year:${currentYear-2}-${currentYear}",      // Very recent
-                "year:${currentYear-5}-${currentYear-2}",    // Recent
-                "year:${currentYear-10}-${currentYear-5}"    // Older classics
-            )
+            val yearRanges =
+                    listOf(
+                            "year:${currentYear-2}-${currentYear}", // Very recent
+                            "year:${currentYear-5}-${currentYear-2}", // Recent
+                            "year:${currentYear-10}-${currentYear-5}" // Older classics
+                    )
             val yearRange = yearRanges.random()
-            
+
             val searchQuery = "genre:$spotifyGenre $yearRange"
-            
+
             Log.d(TAG, "Searching: $searchQuery (offset: $offset)")
-            
-            val searchResponse = api.searchTracks(
-                query = searchQuery,
-                limit = limit,
-                offset = offset,
-                authorization = "Bearer $accessToken"
-            )
-            
+
+            val searchResponse =
+                    api.searchTracks(
+                            query = searchQuery,
+                            limit = limit,
+                            offset = offset,
+                            authorization = "Bearer $accessToken"
+                    )
+
             if (searchResponse.isSuccessful && searchResponse.body() != null) {
                 return searchResponse.body()!!.tracks.items
             }
@@ -208,13 +226,13 @@ object SpotifyWebApiClient {
         }
         return emptyList()
     }
-    
+
     // old implementation
     private suspend fun getTracksByBpmAndGenreOld(
-        context: Context,
-        genre: String,
-        targetBpm: Int,
-        bpmRange: Int = 10
+            context: Context,
+            genre: String,
+            targetBpm: Int,
+            bpmRange: Int = 10
     ): List<SpotifyTrack> {
         return withContext(Dispatchers.IO) {
             try {
@@ -223,11 +241,11 @@ object SpotifyWebApiClient {
                     Log.e(TAG, "Not authenticated with OAuth")
                     return@withContext emptyList()
                 }
-                
+
                 val minBpm = targetBpm - bpmRange
                 val maxBpm = targetBpm + bpmRange
                 val spotifyGenre = mapToSpotifyGenre(genre)
-                
+
                 // old failing api approaches removed
                 return@withContext emptyList()
             } catch (e: Exception) {
@@ -236,9 +254,12 @@ object SpotifyWebApiClient {
             }
         }
     }
-    
+
     // get audio features for track ids
-    suspend fun getAudioFeatures(context: Context, trackIds: List<String>): List<SpotifyAudioFeatures> {
+    suspend fun getAudioFeatures(
+            context: Context,
+            trackIds: List<String>
+    ): List<SpotifyAudioFeatures> {
         return withContext(Dispatchers.IO) {
             try {
                 val accessToken = getAccessToken(context)
@@ -246,13 +267,11 @@ object SpotifyWebApiClient {
                     Log.e(TAG, "Not authenticated with OAuth")
                     return@withContext emptyList()
                 }
-                
+
                 val ids = trackIds.joinToString(",")
-                val response = api.getAudioFeatures(
-                    ids = ids,
-                    authorization = "Bearer $accessToken"
-                )
-                
+                val response =
+                        api.getAudioFeatures(ids = ids, authorization = "Bearer $accessToken")
+
                 if (response.isSuccessful && response.body() != null) {
                     response.body()!!.audio_features.filterNotNull()
                 } else {

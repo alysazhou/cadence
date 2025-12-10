@@ -66,7 +66,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.cadence.R
+import com.cs407.cadence.data.SpotifyAuthState
 import com.cs407.cadence.data.network.SpotifyService
+import com.cs407.cadence.data.network.SpotifyWebApiClient
 import com.cs407.cadence.data.repository.WorkoutRepository
 import com.cs407.cadence.data.services.LocationService
 import com.cs407.cadence.data.services.MovementDetectionService
@@ -121,12 +123,21 @@ fun WorkoutScreen(
     LaunchedEffect(Unit) {
         wasAutoPaused = false
         isCurrentlyMoving = true
+        // When auto-stop is enabled, start in resumed state even if stationary
+        // The auto-pause will kick in after 3 seconds if still stationary
+        if (autoStopEnabled) {
+            Log.d("WorkoutScreen", "Auto-stop enabled: starting in resumed state, will check for movement after 3s")
+        }
     }
 
     Log.d("WorkoutScreen", "State - wasAutoPaused: $wasAutoPaused, isPaused: $isPaused")
 
-    // initialize services
+    // initialize services and start workout session
     LaunchedEffect(Unit) {
+        // Start the workout session in Firebase with selected activity
+        workoutViewModel.startWorkout(selectedActivity)
+        Log.d("WorkoutScreen", "Started workout session with activity: $selectedActivity")
+        
         StepCounterService.initialize(context)
         MovementDetectionService.initialize(context)
 
@@ -141,13 +152,12 @@ fun WorkoutScreen(
         lastMovementTime = System.currentTimeMillis()
     }
 
-    // step counting
-    LaunchedEffect(isPaused) {
-        Log.d("WorkoutScreen", "Step counting LaunchedEffect triggered (isPaused: $isPaused)")
+    // step counting - runs continuously throughout workout (even when paused)
+    LaunchedEffect(Unit) {
         val available = StepCounterService.isAvailable(context)
         Log.d("WorkoutScreen", "Step counter available: $available")
 
-        if (!isPaused && available) {
+        if (available) {
             Log.d("WorkoutScreen", "Starting step counter...")
             StepCounterService.resetSteps()
             StepCounterService.startCounting(context).collect { update ->
@@ -156,10 +166,7 @@ fun WorkoutScreen(
                 Log.d("WorkoutScreen", "Steps: ${update.steps}, Distance: ${distanceMeters}m")
             }
         } else {
-            Log.d(
-                    "WorkoutScreen",
-                    "Step counter NOT started (isPaused: $isPaused, available: $available)"
-            )
+            Log.d("WorkoutScreen", "Step counter not available on this device")
         }
     }
 
@@ -351,26 +358,102 @@ fun WorkoutScreen(
         val clientSecret = com.cs407.cadence.BuildConfig.SPOTIFY_CLIENT_SECRET
         val redirectUri = "com.cs407.cadence.auth://callback"
 
+        // Check if user has authenticated with OAuth
+        val accessToken = SpotifyAuthState.getAccessToken(context)
+        val hasToken = accessToken != null
+        Log.d(
+                "WorkoutScreen",
+                "OAuth token check: hasToken=$hasToken, isAuthenticated=${SpotifyAuthState.isAuthenticated(context)}"
+        )
+
+        if (!hasToken) {
+            Log.e("WorkoutScreen", "No OAuth token found - user must authenticate first")
+            android.widget.Toast.makeText(
+                            context,
+                            "Please connect Spotify in Settings first (go to Settings → Connect to Spotify)",
+                            android.widget.Toast.LENGTH_LONG
+                    )
+                    .show()
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        Log.d("WorkoutScreen", "Token found, validating...")
+        // Validate token is still valid
+        val tokenValid = SpotifyWebApiClient.validateToken(context)
+        Log.d("WorkoutScreen", "Token validation result: $tokenValid")
+
+        if (!tokenValid) {
+            Log.e("WorkoutScreen", "OAuth token invalid or expired")
+            android.widget.Toast.makeText(
+                            context,
+                            "Spotify authentication expired. Please reconnect in Settings",
+                            android.widget.Toast.LENGTH_LONG
+                    )
+                    .show()
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        Log.d("WorkoutScreen", "✓ OAuth authentication verified")
+
+        // Clear previous workout state before starting new workout
+        SpotifyService.clearWorkoutState()
+        Log.d("WorkoutScreen", "Cleared previous workout state before connecting")
+
         SpotifyService.buildConnectionParams(clientId, redirectUri, clientSecret)
 
         SpotifyService.connect(
                 context = context,
                 onSuccess = {
-                    Log.d("WorkoutScreen", "Connection successful. Playing BPM-filtered tracks.")
+                    Log.d("WorkoutScreen", "✓ Spotify App Remote connected successfully")
                     scope.launch {
-                        val (minBpm, maxBpm) = getBpmRangeForActivity(selectedActivity)
-                        val targetBpm = (minBpm + maxBpm) / 2
-                        val bpmRange = (maxBpm - minBpm) / 2
-                        SpotifyService.playRecommendedTracks(
-                                context,
-                                selectedGenre,
-                                targetBpm,
-                                bpmRange = bpmRange
-                        )
+                        try {
+                            val (minBpm, maxBpm) = getBpmRangeForActivity(selectedActivity)
+                            val targetBpm = (minBpm + maxBpm) / 2
+                            val bpmRange = (maxBpm - minBpm) / 2
+
+                            Log.d(
+                                    "WorkoutScreen",
+                                    "Starting music fetch: Genre=$selectedGenre, TargetBPM=$targetBpm, Range=$bpmRange"
+                            )
+
+                            SpotifyService.playRecommendedTracks(
+                                    context,
+                                    selectedGenre,
+                                    targetBpm,
+                                    bpmRange = bpmRange
+                            )
+
+                            Log.d("WorkoutScreen", "✓ playRecommendedTracks completed")
+                        } catch (e: Exception) {
+                            Log.e(
+                                    "WorkoutScreen",
+                                    "Error in playRecommendedTracks: ${e.message}",
+                                    e
+                            )
+                            android.widget.Toast.makeText(
+                                            context,
+                                            "Error fetching music: ${e.message}",
+                                            android.widget.Toast.LENGTH_LONG
+                                    )
+                                    .show()
+                            isLoading = false
+                        }
                     }
                 },
                 onFailure = { throwable ->
-                    Log.e("WorkoutScreen", "Spotify connection failure: ${throwable.message}")
+                    Log.e(
+                            "WorkoutScreen",
+                            "✗ Spotify connection failed: ${throwable.message}",
+                            throwable
+                    )
+                    android.widget.Toast.makeText(
+                                    context,
+                                    "Failed to connect to Spotify: ${throwable.message}",
+                                    android.widget.Toast.LENGTH_LONG
+                            )
+                            .show()
                     isLoading = false
                 }
         )
@@ -756,7 +839,7 @@ fun MusicCard(
                         Modifier.padding(top = 20.dp, bottom = 10.dp).fillMaxWidth().height(20.dp),
                 contentAlignment = Alignment.CenterStart
         ) {
-            val maxWidth = maxWidth - 40.dp
+            val trackWidth = maxWidth
 
             // Background track
             Box(
@@ -783,7 +866,7 @@ fun MusicCard(
             // Progress indicator
             Box(
                     modifier =
-                            Modifier.offset(x = (maxWidth * progress) - 6.dp)
+                            Modifier.offset(x = (trackWidth * progress) - 6.dp)
                                     .size(12.dp)
                                     .background(
                                             MaterialTheme.colorScheme.onPrimary,
